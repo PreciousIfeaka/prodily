@@ -1,32 +1,40 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { session } from "@/lib/data";
+import { getRoleHome, type SessionRole } from "@/lib/roles";
 
-/**
- * Restricts a section to a single role. If the signed-in user's role
- * doesn't match, they're redirected to their own home — they never see
- * even a flash of the other section's content or nav.
- *
- * This checks the local `session` stand-in; swap it for a real auth/role
- * check (e.g. server-side in middleware) once auth is wired up.
- */
+function getRoleFromCookie() {
+  if (typeof window === "undefined") return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; session_role=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
+
+function subscribeToRole() {
+  return () => undefined;
+}
+
 export default function RoleGuard({
   allow,
   children,
 }: {
-  allow: "employee" | "admin";
+  allow: SessionRole | SessionRole[];
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const authorized = session.role === allow;
+  const role = useSyncExternalStore(subscribeToRole, getRoleFromCookie, () => null);
+  const allowedRoles = Array.isArray(allow) ? allow : [allow];
+  const authorized = role !== null && allowedRoles.includes(role as SessionRole);
 
   useEffect(() => {
-    if (!authorized) {
-      router.replace(session.role === "admin" ? "/admin" : "/employee");
+    if (!authorized && role) {
+      router.replace(getRoleHome(role));
+    } else if (!role) {
+      router.replace("/signin");
     }
-  }, [authorized, router]);
+  }, [authorized, role, router]);
 
   if (!authorized) return null;
 
