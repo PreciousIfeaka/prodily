@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { use } from "react";
-import { ArrowLeft, Circle } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import { rewards } from "@/lib/data";
 import Icon from "@/components/ui/Icon";
 import { useEmployee } from "@/components/EmployeeContext";
+import { Card, Button, Badge } from "@/components/ui";
 
 export default function RewardDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -15,63 +16,64 @@ export default function RewardDetailPage({ params }: { params: Promise<{ id: str
   const canAfford = points >= reward.cost;
 
   return (
-    <div className="bg-white border border-line rounded-[22px] overflow-hidden">
-      <div
-        className="rounded-[22px] h-[220px] grid place-items-center relative overflow-hidden m-3 mb-0"
-        style={{ background: reward.gradient }}
-      >
-        <button
-          onClick={() => router.back()}
-          className="absolute top-3.5 left-3.5 w-10 h-10 rounded-full bg-white/90 grid place-items-center z-[5]"
+    <div className="max-w-2xl mx-auto">
+      <Card className="overflow-hidden">
+        <div
+          className="h-[220px] grid place-items-center relative overflow-hidden"
+          style={{ background: reward.gradient }}
         >
-          <ArrowLeft size={20} color="var(--ink)" />
-        </button>
-        <Icon name={reward.icon} size={72} color="#fff" />
-      </div>
-
-      <div className="p-6">
-        <div className="font-display font-extrabold text-2xl text-ink mb-1">{reward.name}</div>
-        <div className="text-[13px] text-muted mb-4">
-          {reward.vendor} · {reward.priceLabel}
-        </div>
-        <p className="text-[14px] text-text mb-2 leading-relaxed">{reward.description}</p>
-
-        <div className="flex justify-between py-3 border-b border-line text-[13.5px]">
-          <span className="text-muted">Category</span>
-          <b className="text-ink">{reward.category}</b>
-        </div>
-        <div className="flex justify-between py-3 border-b border-line text-[13.5px]">
-          <span className="text-muted">Validity</span>
-          <b className="text-ink">30 days</b>
-        </div>
-        <div className="flex justify-between py-3 mb-2 text-[13.5px]">
-          <span className="text-muted">Your balance</span>
-          <b className="text-ink">{points.toLocaleString()} pts</b>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between border-t border-line pt-5 mt-3">
-          <div>
-            <div className="text-[11px] text-muted">Cost</div>
-            <div className="font-display font-extrabold text-xl text-ink flex items-center gap-1.5">
-              <Circle size={18} fill="var(--gold)" color="var(--gold)" />
-              {reward.cost} pts
-            </div>
-          </div>
           <button
-            onClick={() => {
-              if (redeem(reward)) router.push("/employee/rewards");
-            }}
-            disabled={!canAfford}
-            className={`font-bold text-sm rounded-[13px] px-5 py-3 ${
-              canAfford
-                ? "bg-indigo text-white shadow-[var(--sh-indigo)]"
-                : "bg-surface-2 text-faint cursor-not-allowed"
-            }`}
+            onClick={() => router.back()}
+            aria-label="Go back"
+            className="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur grid place-items-center z-[5] text-white hover:bg-black/55 transition-colors"
           >
-            {canAfford ? "Redeem now" : "Not enough points"}
+            <ArrowLeft size={20} />
           </button>
+          <span className="absolute top-4 right-4">
+            <Badge tone="warning">Sample data</Badge>
+          </span>
+          <Icon name={reward.icon} size={72} color="#fff" />
         </div>
-      </div>
+
+        <div className="p-6">
+          <h1 className="t-h1 text-[var(--text)] mb-1">{reward.name}</h1>
+          <div className="t-small text-[var(--muted)] mb-4">
+            {reward.vendor} · {reward.priceLabel}
+          </div>
+          <p className="t-body text-[var(--text)] mb-4 leading-relaxed">{reward.description}</p>
+
+          <div className="flex justify-between py-3 border-b border-[var(--line)] t-small">
+            <span className="text-[var(--muted)]">Category</span>
+            <span className="font-medium text-[var(--text)]">{reward.category}</span>
+          </div>
+          <div className="flex justify-between py-3 border-b border-[var(--line)] t-small">
+            <span className="text-[var(--muted)]">Validity</span>
+            <span className="font-medium text-[var(--text)]">30 days</span>
+          </div>
+          <div className="flex justify-between py-3 t-small">
+            <span className="text-[var(--muted)]">Your balance</span>
+            <span className="font-medium text-[var(--text)]">{points.toLocaleString()} pts</span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between border-t border-[var(--line)] pt-5 mt-3">
+            <div>
+              <div className="t-caption text-[var(--muted)]">Cost</div>
+              <div className="font-display font-medium t-h2 text-[var(--brand-bright)] flex items-center gap-1.5">
+                <Sparkles size={18} />
+                {reward.cost} pts
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                if (redeem(reward)) router.push("/employee/rewards");
+              }}
+              disabled={!canAfford}
+            >
+              {canAfford ? "Redeem now" : "Not enough points"}
+            </Button>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }

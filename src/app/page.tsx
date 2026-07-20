@@ -1,21 +1,7 @@
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { getMeAction } from "@/app/actions/auth";
-import { getRoleHome } from "@/lib/roles";
+import Landing from "@/components/landing/Landing";
 
-export default async function Home() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("session_token")?.value;
-
-  if (!token) {
-    redirect("/signin");
-  }
-
-  const me = await getMeAction();
-  if (!me) {
-    redirect("/signin");
-  }
-
-  const role = me.userRole || me.role;
-  redirect(getRoleHome(role));
+// Public marketing landing. Authenticated visitors are redirected to their
+// dashboard by `proxy.ts` before this renders, so this only serves logged-out users.
+export default function Home() {
+  return <Landing />;
 }

@@ -35,7 +35,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         spread: 75,
         startVelocity: 45,
         origin: { y: 0.6 },
-        colors: ["#6366f1", "#8b5cf6", "#fbbf24", "#10b981", "#f43f5e"],
+        colors: ["#55d396", "#169a50", "#f4c550", "#ffffff", "#12833f"],
       });
     },
     [toast]
@@ -49,8 +49,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           msg ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3 pointer-events-none"
         }`}
       >
-        <div className="flex items-center gap-2 bg-ink text-white font-semibold text-sm px-5 py-3 rounded-2xl shadow-[0_18px_40px_-14px_rgba(26,20,64,0.5)]">
-          <Sparkle size={16} className="text-gold" />
+        <div className="flex items-center gap-2 bg-[var(--surface-3)] text-[var(--text)] font-medium text-sm px-5 py-3 rounded-[var(--r-lg)] border border-[var(--line-2)] shadow-[var(--sh-lg)]">
+          <Sparkle size={16} className="text-[var(--brand-bright)]" />
           <span>{msg}</span>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Paths that never need auth
-const PUBLIC_PATHS = ["/signin", "/signup", "/register", "/verify", "/_next", "/api", "/favicon.ico"];
+const PUBLIC_PATHS = ["/signin", "/signup", "/register", "/verify", "/privacy", "/terms", "/_next", "/api", "/favicon.ico"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -12,8 +12,19 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Static assets served from /public (images, fonts, etc.) never need auth
+  if (/\.(?:png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|otf|mp4|webm)$/i.test(pathname)) {
+    return NextResponse.next();
+  }
+
   const token = req.cookies.get("session_token")?.value;
   const role = req.cookies.get("session_role")?.value; // "admin" | "team_lead" | "team_member"
+
+  // Public marketing landing at root for logged-out visitors (authed users fall
+  // through to the role-home redirect below).
+  if (pathname === "/" && (!token || !role)) {
+    return NextResponse.next();
+  }
 
   // Not authenticated → send to sign in
   if (!token || !role) {

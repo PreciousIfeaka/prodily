@@ -45,7 +45,7 @@ export const rewards: Reward[] = [
     cost: 250,
     category: "Food",
     tag: "Popular",
-    gradient: "linear-gradient(140deg,#6366f1,#8b5cf6)",
+    gradient: "linear-gradient(140deg,#169a50,#55d396)",
     icon: "utensils",
     description:
       "Redeem for a meal at any partner restaurant in the Foodie network. Valid for 30 days from redemption.",
@@ -90,7 +90,7 @@ export const rewards: Reward[] = [
     priceLabel: "₦5,000",
     cost: 480,
     category: "Transport",
-    gradient: "linear-gradient(140deg,#4338ca,#6366f1)",
+    gradient: "linear-gradient(140deg,#0c5c30,#169a50)",
     icon: "car",
     description: "₦5,000 in ride credit applied directly to your Bolt wallet.",
   },
@@ -101,7 +101,7 @@ export const rewards: Reward[] = [
     priceLabel: "Any course",
     cost: 320,
     category: "Learning",
-    gradient: "linear-gradient(140deg,#8b5cf6,#a78bfa)",
+    gradient: "linear-gradient(140deg,#2f8f5e,#55d396)",
     icon: "book",
     description: "Enroll in any single course on Udemy, up to a value of ₦15,000.",
   },
@@ -120,11 +120,11 @@ export const rewardHistory = [
 ];
 
 export const badges = [
-  { id: 1, name: "Fast Shipper", gradient: "linear-gradient(140deg,#6366f1,#8b5cf6)", icon: "zap", locked: false },
+  { id: 1, name: "Fast Shipper", gradient: "linear-gradient(140deg,#169a50,#2f8f5e)", icon: "zap", locked: false },
   { id: 2, name: "Streak Master", gradient: "linear-gradient(140deg,#f59e0b,#fbbf24)", icon: "flame", locked: false },
   { id: 3, name: "On-Time Hero", gradient: "linear-gradient(140deg,#10b981,#34d399)", icon: "check", locked: false },
   { id: 4, name: "Team Player", gradient: "linear-gradient(140deg,#f43f5e,#fb7185)", icon: "heart", locked: false },
-  { id: 5, name: "Lifelong Learner", gradient: "linear-gradient(140deg,#8b5cf6,#a78bfa)", icon: "book", locked: false },
+  { id: 5, name: "Lifelong Learner", gradient: "linear-gradient(140deg,#2f8f5e,#55d396)", icon: "book", locked: false },
   { id: 6, name: "Innovator", gradient: "", icon: "lock", locked: true },
 ];
 
@@ -134,7 +134,7 @@ export const challenges = [
     name: "Team Sprint Champion",
     meta: "Design team · Ends in 4 days",
     progress: 65,
-    gradient: "linear-gradient(140deg,#6366f1,#8b5cf6)",
+    gradient: "linear-gradient(140deg,#169a50,#55d396)",
     icon: "trophy",
     leads: ["AO", "TB", "CN"],
     prize: "500 pts",
@@ -346,10 +346,10 @@ export const rewardRules: RewardRule[] = [
 ];
 
 export const approvalRows = [
-  { id: 1, name: "Ada Okafor", team: "Design", initials: "AO", color: "#6366f1", item: "Sprint bonus", amount: "₦12,000", status: "Pending" },
+  { id: 1, name: "Ada Okafor", team: "Design", initials: "AO", color: "#169a50", item: "Sprint bonus", amount: "₦12,000", status: "Pending" },
   { id: 2, name: "Tunde Balogun", team: "Engineering", initials: "TB", color: "#f59e0b", item: "Peer kudos", amount: "₦2,500", status: "Pending" },
   { id: 3, name: "Blessing Eze", team: "Design", initials: "BE", color: "#10b981", item: "Emergency Transport", amount: "₦8,000", status: "Team Lead" },
-  { id: 4, name: "Chidi Nwosu", team: "Support", initials: "CN", color: "#8b5cf6", item: "Movie Ticket", amount: "₦4,000", status: "Auto-approved" },
+  { id: 4, name: "Chidi Nwosu", team: "Support", initials: "CN", color: "#2f8f5e", item: "Movie Ticket", amount: "₦4,000", status: "Auto-approved" },
 ];
 
 export const fraudFlags = [
@@ -443,7 +443,7 @@ export const rewardRequests: RewardRequest[] = [
     employee: "Ada Okafor",
     initials: "AO",
     team: "Design",
-    color: "#6366f1",
+    color: "#169a50",
     source: "performance",
     triggerLabel: "Sprint completion logged at 100%",
     engine: "rule_engine",
@@ -502,7 +502,7 @@ export const rewardRequests: RewardRequest[] = [
     employee: "Chidi Nwosu",
     initials: "CN",
     team: "Support",
-    color: "#8b5cf6",
+    color: "#2f8f5e",
     source: "challenge",
     triggerLabel: "\u201cOn-Time Delivery\u201d challenge completed",
     engine: "rule_engine",

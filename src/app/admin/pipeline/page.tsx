@@ -19,6 +19,7 @@ import {
   resolveRedemption,
 } from "@/lib/pipeline";
 import { useToast } from "@/components/Toast";
+import { PageHeader, Card, Badge } from "@/components/ui";
 
 // The 5 named stages from the Figma board. Each maps to one or more
 // PipelineStage values — exactly the grouping the coloured bands show.
@@ -29,11 +30,11 @@ const bands: {
   tag: string;
   band: string;
 }[] = [
-  { key: "b1", title: "1 · Earning & triggers", stages: ["monitoring"], tag: "bg-[#2563eb]", band: "bg-[#eaf1ff] border-[#c7dbfb]" },
-  { key: "b2", title: "2 · Evaluation & AI", stages: ["rule_check", "manager_review"], tag: "bg-[#7c3aed]", band: "bg-[#f1eafc] border-[#ddc9f7]" },
-  { key: "b3", title: "3 · Integrity & budget", stages: ["pending_review", "budget_check"], tag: "bg-[#d97706]", band: "bg-[#fdf3e2] border-[#f3ddaa]" },
-  { key: "b4", title: "4 · Approval workflow", stages: ["approval"], tag: "bg-[#0891b2]", band: "bg-[#e5f8fb] border-[#b9e9f1]" },
-  { key: "b5", title: "5 · Redemption & fulfilment", stages: ["redemption", "redeemed", "expired"], tag: "bg-[#059669]", band: "bg-[#e9f9f1] border-[#bfeed8]" },
+  { key: "b1", title: "1 · Earning & triggers", stages: ["monitoring"], tag: "bg-[#2563eb]", band: "bg-[var(--surface-2)] border-[var(--line)]" },
+  { key: "b2", title: "2 · Evaluation & AI", stages: ["rule_check", "manager_review"], tag: "bg-[#7c3aed]", band: "bg-[var(--surface-2)] border-[var(--line)]" },
+  { key: "b3", title: "3 · Integrity & budget", stages: ["pending_review", "budget_check"], tag: "bg-[#d97706]", band: "bg-[var(--surface-2)] border-[var(--line)]" },
+  { key: "b4", title: "4 · Approval workflow", stages: ["approval"], tag: "bg-[#0891b2]", band: "bg-[var(--surface-2)] border-[var(--line)]" },
+  { key: "b5", title: "5 · Redemption & fulfilment", stages: ["redemption", "redeemed", "expired"], tag: "bg-[var(--brand)]", band: "bg-[var(--surface-2)] border-[var(--line)]" },
 ];
 
 const stageMeta: Record<PipelineStage, { label: string; note: string }> = {
@@ -66,13 +67,12 @@ export default function PipelinePage() {
   const rejected = requests.filter((r) => r.stage === "rejected");
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <div className="text-[13.5px] text-muted">
-          <b className="text-ink font-bold">{requests.length} requests</b> moving through the reward pipeline · click
-          an action to advance a card
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Reward Pipeline"
+        subtitle={`${requests.length} requests moving through the pipeline · click an action to advance a card`}
+        action={<Badge tone="warning">Sample data</Badge>}
+      />
 
       <div className="grid gap-4 lg:grid-cols-5">
         {bands.map((b) => {
@@ -113,7 +113,7 @@ export default function PipelinePage() {
             {rejected.map((r) => (
               <div
                 key={r.id}
-                className="bg-white border border-line rounded-2xl px-4 py-3 flex items-center gap-3 flex-wrap"
+                className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl px-4 py-3 flex items-center gap-3 flex-wrap"
               >
                 <Avatar item={r} />
                 <div className="flex-1 min-w-[160px]">
@@ -169,7 +169,7 @@ function RequestCard({
   const meta = stageMeta[item.stage];
 
   return (
-    <div className="bg-white border border-line rounded-[18px] p-3.5 flex flex-col gap-2.5">
+    <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[18px] p-3.5 flex flex-col gap-2.5">
       <div className="flex items-start gap-2.5">
         <Avatar item={item} />
         <div className="min-w-0 flex-1">

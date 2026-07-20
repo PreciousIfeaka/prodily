@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Heart, MessageCircle, Award } from "lucide-react";
 import { feedPosts } from "@/lib/data";
+import { PageHeader, Card, Avatar, Badge } from "@/components/ui";
 
 export default function FeedPage() {
   const [likes, setLikes] = useState<Record<number, number>>(
@@ -19,69 +20,66 @@ export default function FeedPage() {
   };
 
   return (
-    <div>
-      <div className="pt-1.5 pb-3.5">
-        <div className="font-display font-extrabold text-[23px] text-ink tracking-tight">Feed</div>
-        <div className="text-[12.5px] text-muted">Kudos and recognition</div>
-      </div>
+    <div className="space-y-6 max-w-2xl mx-auto">
+      <PageHeader
+        title="Team Feed"
+        subtitle="Kudos and recognition from across your organization."
+        action={<Badge tone="warning">Sample data</Badge>}
+      />
 
-      {feedPosts.map((p) => (
-        <div key={p.id} className="bg-white border border-line rounded-[20px] p-[15px] mb-3">
-          <div className="flex items-center gap-2.5 mb-2.5">
-            <div
-              className="w-9 h-9 rounded-full text-white font-bold text-xs grid place-items-center flex-shrink-0"
-              style={{ background: "linear-gradient(140deg, var(--indigo), var(--violet))" }}
-            >
-              {p.name.split(" ").map((n) => n[0]).join("")}
-            </div>
-            <div>
-              <div className="text-[13.5px] font-bold text-ink">{p.name}</div>
-              <div className="text-[11.5px] text-faint">{p.time}</div>
-            </div>
-          </div>
-          <div className="text-[13.5px] text-text mb-2.5">
-            {p.mention ? (
-              <>
-                {p.body.split(p.mention)[0]}
-                <span className="text-indigo font-bold">{p.mention}</span>
-                {p.body.split(p.mention)[1]}
-              </>
-            ) : (
-              p.body
-            )}
-          </div>
-          {p.award && (
-            <div
-              className="inline-flex items-center gap-2 rounded-[14px] px-3.5 py-2.5 mb-2.5"
-              style={{ background: "linear-gradient(100deg, var(--violet-tint), #fbf5ff)", border: "1px solid #ecd9ff" }}
-            >
-              <div
-                className="w-[34px] h-[34px] rounded-[10px] grid place-items-center"
-                style={{ background: "linear-gradient(140deg, var(--violet), var(--indigo))" }}
-              >
-                <Award size={19} color="#fff" />
-              </div>
+      <div className="space-y-4">
+        {feedPosts.map((p) => (
+          <Card key={p.id} className="p-4">
+            <div className="flex items-center gap-2.5 mb-2.5">
+              <Avatar name={p.name} size={36} />
               <div>
-                <b className="text-[13px] text-ink block">{p.award.title}</b>
-                <span className="text-[11px] text-muted">{p.award.subtitle}</span>
+                <div className="t-small font-medium text-[var(--text)]">{p.name}</div>
+                <div className="t-caption text-[var(--muted)]">{p.time}</div>
               </div>
             </div>
-          )}
-          <div className="flex gap-4 pt-2.5 border-t border-line">
-            <button
-              onClick={() => toggleLike(p.id)}
-              className={`flex items-center gap-1.5 font-semibold text-[12.5px] ${liked[p.id] ? "text-rose" : "text-muted"}`}
-            >
-              <Heart size={16} fill={liked[p.id] ? "currentColor" : "none"} />
-              {likes[p.id]}
-            </button>
-            <button className="flex items-center gap-1.5 font-semibold text-[12.5px] text-muted">
-              <MessageCircle size={16} />
-              {p.comments}
-            </button>
-          </div>
-        </div>
-      ))}
+            <div className="t-body text-[var(--text)] mb-2.5">
+              {p.mention ? (
+                <>
+                  {p.body.split(p.mention)[0]}
+                  <span className="text-[var(--brand-bright)] font-medium">{p.mention}</span>
+                  {p.body.split(p.mention)[1]}
+                </>
+              ) : (
+                p.body
+              )}
+            </div>
+            {p.award && (
+              <div className="inline-flex items-center gap-2 rounded-[var(--r)] px-3.5 py-2.5 mb-2.5 bg-[var(--brand-tint)] border border-[var(--brand)]/20">
+                <div
+                  className="w-[34px] h-[34px] rounded-[var(--r-sm)] grid place-items-center"
+                  style={{ background: "linear-gradient(140deg, var(--brand-bright), var(--brand))" }}
+                >
+                  <Award size={19} color="#040605" />
+                </div>
+                <div>
+                  <b className="t-small text-[var(--text)] block">{p.award.title}</b>
+                  <span className="t-caption text-[var(--muted)]">{p.award.subtitle}</span>
+                </div>
+              </div>
+            )}
+            <div className="flex gap-4 pt-2.5 border-t border-[var(--line)]">
+              <button
+                onClick={() => toggleLike(p.id)}
+                className={`flex items-center gap-1.5 font-medium t-small transition-colors ${
+                  liked[p.id] ? "text-[var(--rose)]" : "text-[var(--muted)] hover:text-[var(--text)]"
+                }`}
+              >
+                <Heart size={16} fill={liked[p.id] ? "currentColor" : "none"} />
+                {likes[p.id]}
+              </button>
+              <button className="flex items-center gap-1.5 font-medium t-small text-[var(--muted)] hover:text-[var(--text)] transition-colors">
+                <MessageCircle size={16} />
+                {p.comments}
+              </button>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

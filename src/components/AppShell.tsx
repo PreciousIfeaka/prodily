@@ -17,12 +17,97 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  Rss,
+  Gift,
+  ScrollText,
+  Users,
+  BadgeCheck,
 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import TopNav from "@/components/TopNav";
+import { Logo, Avatar, Spinner, IconButton } from "@/components/ui";
 
 const publicPaths = ["/signin", "/signup", "/register"];
+
+type NavItem = { label: string; href: string; icon: any; exact?: boolean };
+type NavSection = { title?: string; items: NavItem[] };
+
+const navSections: Record<string, NavSection[]> = {
+  ADMIN: [
+    { items: [{ label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true }] },
+    {
+      title: "Approvals",
+      items: [
+        { label: "Reward Approvals", href: "/admin/approvals", icon: BadgeCheck },
+        { label: "Workflow Rules", href: "/admin/approval-workflows", icon: Settings },
+      ],
+    },
+    {
+      title: "Risk & Rules",
+      items: [
+        { label: "Fraud Alerts", href: "/admin/fraud-alerts", icon: ShieldAlert },
+        { label: "Fraud Cases", href: "/admin/fraud", icon: ShieldAlert },
+        { label: "Rules", href: "/admin/rules", icon: ScrollText },
+      ],
+    },
+    {
+      title: "Organization",
+      items: [
+        { label: "Budget", href: "/admin/budget", icon: TrendingUp },
+        { label: "Transactions", href: "/admin/transactions", icon: History },
+        { label: "Onboarding Pipeline", href: "/admin/pipeline", icon: Users },
+      ],
+    },
+  ],
+  TEAM_LEAD: [
+    { items: [{ label: "Dashboard", href: "/team-lead", icon: LayoutDashboard, exact: true }] },
+    {
+      title: "Team",
+      items: [
+        { label: "Active Challenges", href: "/employee/challenges", icon: Trophy },
+        { label: "Wallet & Funding", href: "/employee/wallet", icon: Coins },
+      ],
+    },
+  ],
+  TEAM_MEMBER: [
+    { items: [{ label: "Dashboard", href: "/employee", icon: LayoutDashboard, exact: true }] },
+    {
+      title: "Work",
+      items: [
+        { label: "My Tasks", href: "/employee/tasks", icon: CheckSquare },
+        { label: "Time Tracking", href: "/employee/time-tracking", icon: Activity },
+        { label: "Team Feed", href: "/employee/feed", icon: Rss },
+      ],
+    },
+    {
+      title: "Rewards",
+      items: [
+        { label: "Challenges", href: "/employee/challenges", icon: Trophy },
+        { label: "Leaderboard", href: "/employee/leaderboard", icon: TrendingUp },
+        { label: "Rewards", href: "/employee/rewards", icon: Gift },
+      ],
+    },
+    {
+      title: "Money",
+      items: [
+        { label: "Wallet & Payouts", href: "/employee/wallet", icon: Coins },
+        { label: "Transactions", href: "/employee/transactions", icon: History },
+      ],
+    },
+    {
+      title: "Account",
+      items: [{ label: "Profile", href: "/employee/profile", icon: Building }],
+    },
+  ],
+};
+
+function isActive(pathname: string, item: NavItem) {
+  const base = item.href.split("#")[0].split("?")[0];
+  if (pathname === base) return true;
+  if (item.exact) return false;
+  return pathname.startsWith(base + "/");
+}
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -33,9 +118,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isPublicPath = publicPaths.some((p) => pathname.startsWith(p));
+  // Marketing routes render full-bleed with no dashboard chrome and no auth fetch.
+  const isMarketing =
+    pathname === "/" || pathname.startsWith("/privacy") || pathname.startsWith("/terms");
 
   useEffect(() => {
-    if (isPublicPath) {
+    if (isPublicPath || isMarketing) {
       setLoading(false);
       return;
     }
@@ -55,7 +143,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       }
     }
     fetchUser();
-  }, [pathname, isPublicPath, router]);
+  }, [pathname, isPublicPath, isMarketing, router]);
+
+  // Close the mobile menu whenever the route changes.
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   const handleLogout = () => {
     startTransition(async () => {
@@ -66,6 +159,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       router.refresh();
     });
   };
+
+  // Marketing routes render their own nav/footer — no dashboard chrome.
+  if (isMarketing) {
+    return <>{children}</>;
+  }
 
   if (isPublicPath) {
     return (
@@ -78,10 +176,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex items-center gap-3 bg-white/80 p-8 rounded-[32px] border border-[var(--line)] shadow-[var(--sh)]">
-          <span className="w-6 h-6 border-2 border-[var(--indigo)]/30 border-t-[var(--indigo)] rounded-full animate-spin" />
-          <span className="font-semibold text-sm text-[var(--ink)]">Loading workspace...</span>
+      <div className="relative z-10 flex items-center justify-center min-h-screen">
+        <div className="flex items-center gap-3 bg-[var(--surface)] px-6 py-5 rounded-[var(--r-lg)] border border-[var(--line)] shadow-[var(--sh)]">
+          <Spinner size={20} />
+          <span className="font-medium text-sm text-[var(--text)]">Loading workspace…</span>
         </div>
       </div>
     );
@@ -89,156 +187,116 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!user) return null;
 
-  const role = user.userRole; // "ADMIN" | "TEAM_LEAD" | "TEAM_MEMBER"
+  const role = user.userRole as string; // "ADMIN" | "TEAM_LEAD" | "TEAM_MEMBER"
+  const sections = navSections[role] || [];
+  const fullName =
+    [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "Account";
+  const roleLabel = role.replace(/_/g, " ").toLowerCase();
 
-  const navItems: { [key: string]: { label: string; href: string; icon: any }[] } = {
-    ADMIN: [
-      { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-      { label: "Budget Utilization", href: "/admin/budget", icon: TrendingUp },
-      { label: "Fraud Alerts", href: "/admin/fraud-alerts", icon: ShieldAlert },
-      { label: "Workflow rules", href: "/admin/approval-workflows", icon: Settings },
-      { label: "Org Transactions", href: "/admin/transactions", icon: History },
-    ],
-    TEAM_LEAD: [
-      { label: "Dashboard", href: "/team-lead", icon: LayoutDashboard },
-      { label: "Task Reviews", href: "/team-lead#task-reviews", icon: CheckSquare },
-      { label: "Time Entries", href: "/team-lead#time-entries", icon: Activity },
-      { label: "Active Challenges", href: "/employee/challenges", icon: Trophy },
-      { label: "Wallet & Funding", href: "/employee/wallet", icon: Coins },
-    ],
-    TEAM_MEMBER: [
-      { label: "Dashboard", href: "/employee", icon: LayoutDashboard },
-      { label: "My Tasks", href: "/employee/tasks", icon: CheckSquare },
-      { label: "Active Challenges", href: "/employee/challenges", icon: Trophy },
-      { label: "Weekly Leaderboard", href: "/employee/leaderboard", icon: TrendingUp },
-      { label: "Time Tracking", href: "/employee/time-tracking", icon: Activity },
-      { label: "My Wallet & Payouts", href: "/employee/wallet", icon: Coins },
-      { label: "My Transactions", href: "/employee/transactions", icon: History },
-    ],
-  };
-
-  const items = navItems[role] || [];
-
-  return (
-    <div className="flex min-h-screen bg-[var(--surface-2)] text-[var(--ink)] font-body">
-      {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex flex-col w-72 bg-white border-r border-[var(--line)] p-6 fixed h-full z-30">
-        <div className="flex items-center gap-3 mb-8">
-          <div
-            className="w-10 h-10 rounded-[12px] grid place-items-center shadow-[var(--sh-indigo)] animate-fade-in"
-            style={{ background: "linear-gradient(140deg, var(--indigo), var(--violet))" }}
-          >
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2l2.6 6.1L21 8.6l-4.7 4.3L17.6 20 12 16.6 6.4 20l1.3-7.1L3 8.6l6.4-.5z" />
-            </svg>
-          </div>
-          <div>
-            <div className="font-display font-extrabold text-[20px] leading-none tracking-tight text-[var(--ink)]">
-              Prodily
+  const NavList = ({ dense = false }: { dense?: boolean }) => (
+    <>
+      {sections.map((section, si) => (
+        <div key={si} className={dense ? "space-y-0.5" : "space-y-1"}>
+          {section.title && (
+            <div className="px-3 pt-4 pb-1 t-micro font-medium uppercase tracking-wider text-[var(--faint)]">
+              {section.title}
             </div>
-            <div className="text-[11px] text-[var(--muted)] font-bold uppercase tracking-wider mt-1.5">
-              {role.replace("_", " ")}
-            </div>
-          </div>
-        </div>
-
-        <nav className="flex-1 space-y-1.5">
-          {items.map((item) => {
+          )}
+          {section.items.map((item) => {
             const Icon = item.icon;
-            const active = pathname === item.href.split("#")[0];
+            const active = isActive(pathname, item);
             return (
               <Link
-                key={item.label}
+                key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${
+                aria-current={active ? "page" : undefined}
+                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[var(--r)] t-small font-medium transition-all ${
                   active
-                    ? "bg-[var(--indigo-tint)] text-[var(--indigo)]"
-                    : "text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                    ? "bg-[var(--brand-tint)] text-[var(--brand-bright)]"
+                    : "text-[var(--muted)] hover:bg-[var(--surface-3)] hover:text-[var(--text)]"
                 }`}
               >
-                <Icon className={`w-5 h-5 ${active ? "text-[var(--indigo)]" : "text-[var(--faint)]"}`} />
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-[var(--brand-bright)]" />
+                )}
+                <Icon className={`w-[18px] h-[18px] ${active ? "text-[var(--brand-bright)]" : "text-[var(--faint)]"}`} />
                 {item.label}
               </Link>
             );
           })}
-        </nav>
+        </div>
+      ))}
+    </>
+  );
 
-        {/* User Card */}
-        <div className="border-t border-[var(--line)] pt-4 mt-auto">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[var(--rose-tint)] hover:bg-rose-100 text-[var(--rose)] rounded-2xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer border border-rose-200/50"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
+  const UserCard = () => (
+    <div className="flex items-center gap-3 p-3 rounded-[var(--r)] bg-[var(--surface-2)] border border-[var(--line)]">
+      <Avatar name={fullName} size={38} />
+      <div className="min-w-0 flex-1">
+        <div className="t-small font-medium text-[var(--text)] truncate">{fullName}</div>
+        <div className="t-caption text-[var(--muted)] truncate">{user.email}</div>
+      </div>
+      <IconButton onClick={handleLogout} aria-label="Sign out" title="Sign out">
+        <LogOut className="w-4 h-4" />
+      </IconButton>
+    </div>
+  );
+
+  return (
+    <div className="relative z-10 flex min-h-screen text-[var(--text)]">
+      {/* Sidebar - Desktop */}
+      <aside className="hidden lg:flex flex-col w-72 bg-[var(--surface)] border-r border-[var(--line)] p-4 fixed h-full z-30">
+        <div className="px-2 py-3 mb-2">
+          <Logo size={40} withWordmark subtitle={roleLabel} />
+        </div>
+        <nav className="flex-1 overflow-y-auto scrollbar-none -mx-1 px-1">
+          <NavList />
+        </nav>
+        <div className="pt-3 mt-2 border-t border-[var(--line)]">
+          <UserCard />
         </div>
       </aside>
 
       {/* Main Layout Area */}
       <div className="flex-1 lg:pl-72 flex flex-col min-h-screen">
         {/* Mobile Header */}
-        <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-[var(--line)] sticky top-0 z-40">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-8 h-8 rounded-lg grid place-items-center shadow-[var(--sh-indigo)]"
-              style={{ background: "linear-gradient(140deg, var(--indigo), var(--violet))" }}
-            >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2l2.6 6.1L21 8.6l-4.7 4.3L17.6 20 12 16.6 6.4 20l1.3-7.1L3 8.6l6.4-.5z" />
-              </svg>
-            </div>
-            <div className="font-display font-extrabold text-lg text-[var(--ink)]">
-              Prodily
-            </div>
-          </div>
+        <header className="lg:hidden flex items-center justify-between px-5 py-3.5 bg-[var(--surface)]/90 backdrop-blur border-b border-[var(--line)] sticky top-0 z-40">
+          <Logo size={34} withWordmark />
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 rounded-lg border border-[var(--line)] hover:bg-gray-50 text-[var(--ink)]"
+            onClick={() => setMobileMenuOpen((v) => !v)}
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileMenuOpen}
+            className="p-2 rounded-[var(--r-sm)] border border-[var(--line-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </header>
 
-        {/* Mobile Menu Dropdown */}
+        {/* Mobile Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden bg-white border-b border-[var(--line)] px-6 py-4 space-y-1.5 fixed w-full z-30 shadow-md">
-            {items.map((item) => {
-              const Icon = item.icon;
-              const active = pathname === item.href.split("#")[0];
-              return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                    active
-                      ? "bg-[var(--indigo-tint)] text-[var(--indigo)]"
-                      : "text-[var(--muted)] hover:bg-[var(--surface-2)]"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-            <div className="border-t border-[var(--line)] pt-3 mt-3 flex items-center justify-end">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  handleLogout();
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--rose-tint)] text-[var(--rose)] rounded-xl text-[11px] font-bold uppercase tracking-wider"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                Logout
-              </button>
+          <div
+            className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-backdrop-in"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <div
+              className="absolute left-0 top-0 h-full w-[80%] max-w-xs bg-[var(--surface)] border-r border-[var(--line)] p-4 flex flex-col animate-slide-in-left"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-2 py-2 mb-2">
+                <Logo size={36} withWordmark subtitle={roleLabel} />
+              </div>
+              <nav className="flex-1 overflow-y-auto scrollbar-none -mx-1 px-1">
+                <NavList dense />
+              </nav>
+              <div className="pt-3 mt-2 border-t border-[var(--line)]">
+                <UserCard />
+              </div>
             </div>
           </div>
         )}
 
         {/* Main Content Area */}
-        <main className="flex-1 p-6 lg:p-10 max-w-5xl mx-auto w-full">
+        <main className="flex-1 p-5 sm:p-6 lg:p-10 max-w-6xl mx-auto w-full">
           {children}
         </main>
       </div>
