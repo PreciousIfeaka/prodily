@@ -23,6 +23,8 @@ import {
   ScrollText,
   Users,
   BadgeCheck,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import TopNav from "@/components/TopNav";
@@ -114,6 +116,30 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLight, setIsLight] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "light") {
+      document.documentElement.classList.add("light");
+      setIsLight(true);
+    } else {
+      document.documentElement.classList.remove("light");
+      setIsLight(false);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    if (document.documentElement.classList.contains("light")) {
+      document.documentElement.classList.remove("light");
+      localStorage.setItem("theme", "dark");
+      setIsLight(false);
+    } else {
+      document.documentElement.classList.add("light");
+      localStorage.setItem("theme", "light");
+      setIsLight(true);
+    }
+  };
 
   const isPublicPath = publicPaths.some((p) => pathname.startsWith(p));
   // Marketing routes render full-bleed with no dashboard chrome and no auth fetch.
@@ -258,20 +284,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Layout Area */}
-      <div className="flex-1 lg:pl-72 flex flex-col min-h-screen">
+      <div className="flex-1 lg:pl-72 flex flex-col min-h-screen relative">
+        {/* Desktop Theme Toggle (Floating Top Right) */}
+        <div className="hidden lg:block absolute top-6 right-8 z-40">
+          <IconButton onClick={toggleTheme} aria-label="Toggle theme" title="Toggle theme">
+            {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4 text-[var(--gold)]" />}
+          </IconButton>
+        </div>
+
         {/* Mobile Header */}
         <header className="lg:hidden flex items-center justify-between px-5 py-3.5 bg-[var(--surface)]/90 backdrop-blur border-b border-[var(--line)] sticky top-0 z-40">
           <Link href="/">
             <Logo size={34} withWordmark />
           </Link>
-          <button
-            onClick={() => setMobileMenuOpen((v) => !v)}
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileMenuOpen}
-            className="p-2 rounded-[var(--r-sm)] border border-[var(--line-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <IconButton onClick={toggleTheme} aria-label="Toggle theme" title="Toggle theme">
+              {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4 text-[var(--gold)]" />}
+            </IconButton>
+            <button
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+              className="p-2 rounded-[var(--r-sm)] border border-[var(--line-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </header>
 
         {/* Mobile Drawer */}

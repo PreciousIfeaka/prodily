@@ -56,6 +56,50 @@
   --sh-indigo: var(--glow-brand);
 }
 
+html.light {
+  /* ===== Backgrounds & surfaces (light ramp) ===== */
+  --bg: #f5f8f6;
+  --surface: #ffffff;
+  --surface-2: #edf2ef;
+  --surface-3: #dde4df;
+
+  /* ===== Brand green ===== */
+  --brand: #169a50;
+  --brand-bright: #12833f;
+  --brand-600: #0e6931;
+  --brand-tint: rgba(22, 154, 80, 0.08);
+
+  /* ===== Borders ===== */
+  --line: rgba(22, 154, 80, 0.08);
+  --line-2: rgba(22, 154, 80, 0.14);
+
+  /* ===== Text ramp on light ===== */
+  --text: #0f1512;
+  --muted: #526359;
+  --faint: #81958b;
+
+  /* ===== Semantic accents (tuned for light) ===== */
+  --gold: #b38107;
+  --gold-600: #8c6403;
+  --gold-tint: rgba(179, 129, 7, 0.08);
+  --rose: #d63c4f;
+  --rose-tint: rgba(214, 60, 79, 0.08);
+  --mint: #169a50;
+  --mint-tint: rgba(22, 154, 80, 0.08);
+
+  /* ===== Elevation ===== */
+  --sh-sm: 0 1px 2px rgba(15, 21, 18, 0.05);
+  --sh: 0 12px 32px -12px rgba(15, 21, 18, 0.12);
+  --sh-lg: 0 24px 48px -18px rgba(15, 21, 18, 0.16);
+  --glow-brand: 0 8px 30px -10px rgba(22, 154, 80, 0.12);
+}
+
+html.light .aurora {
+  background:
+    radial-gradient(80% 55% at 50% 118%, rgba(85, 211, 150, 0.12) 0%, rgba(22, 154, 80, 0.06) 34%, rgba(255, 255, 255, 0) 66%),
+    radial-gradient(60% 40% at 12% 108%, rgba(22, 154, 80, 0.08) 0%, rgba(255, 255, 255, 0) 60%);
+}
+
 @theme inline {
   /* surfaces */
   --color-bg: var(--bg);

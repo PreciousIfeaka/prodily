@@ -137,7 +137,13 @@ export async function resolveBankAccountAction(bankCode: string, accountNumber: 
       return { success: false, error: result.message || "Failed to resolve bank account." };
     }
 
-    return { success: true, accountName: result.accountName };
+    const data = result.data || result;
+    const accountName = data?.accountName || result.accountName;
+    if (!accountName) {
+      return { success: false, error: "Could not resolve account." };
+    }
+
+    return { success: true, accountName };
   } catch (error) {
     console.error("Resolve bank account error:", error);
     return { success: false, error: "Failed to connect to backend server." };

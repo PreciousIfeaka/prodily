@@ -20,9 +20,8 @@ export function proxy(req: NextRequest) {
   const token = req.cookies.get("session_token")?.value;
   const role = req.cookies.get("session_role")?.value; // "admin" | "team_lead" | "team_member"
 
-  // Public marketing landing at root for logged-out visitors (authed users fall
-  // through to the role-home redirect below).
-  if (pathname === "/" && (!token || !role)) {
+  // Public marketing landing at root is always allowed for both logged-in and logged-out visitors.
+  if (pathname === "/") {
     return NextResponse.next();
   }
 
@@ -30,15 +29,6 @@ export function proxy(req: NextRequest) {
   if (!token || !role) {
     const url = req.nextUrl.clone();
     url.pathname = "/signin";
-    return NextResponse.redirect(url);
-  }
-
-  // Root → redirect to role-specific home (only once, no loop)
-  if (pathname === "/") {
-    const url = req.nextUrl.clone();
-    if (role === "admin") url.pathname = "/admin";
-    else if (role === "team_lead") url.pathname = "/team-lead";
-    else url.pathname = "/employee";
     return NextResponse.redirect(url);
   }
 
