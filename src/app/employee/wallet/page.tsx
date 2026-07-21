@@ -53,7 +53,6 @@ export default function EmployeeWalletPage() {
   const [resolvedAccountName, setResolvedAccountName] = useState("");
   const [resolvingAccount, setResolvingAccount] = useState(false);
 
-  const [bankSearch, setBankSearch] = useState("");
   const [billerProducts, setBillerProducts] = useState<any[]>([]);
   const [billerProductsLoading, setBillerProductsLoading] = useState(false);
   const [selectedProductCode, setSelectedProductCode] = useState("");
@@ -138,15 +137,10 @@ export default function EmployeeWalletPage() {
     }
   }, [provider, redemptionType, modal]);
 
-  const filteredBanks = banks.filter((b) =>
-    b.name.toLowerCase().includes(bankSearch.toLowerCase())
-  );
-
   const closeModal = () => {
     setModal(null);
     setErrors({});
     setResolvedAccountName("");
-    setBankSearch("");
     setAirtimeAmount("");
   };
 
@@ -609,25 +603,33 @@ export default function EmployeeWalletPage() {
         }
       >
         <form onSubmit={handleUpdateBankProfile} className="space-y-4">
-          <Field label="Search bank">
-            {({ id }) => (
-              <Input
-                id={id}
-                type="text"
-                placeholder="Type bank name to filter..."
-                value={bankSearch}
-                onChange={(e) => setBankSearch(e.target.value)}
-              />
-            )}
-          </Field>
           <Field label="Settlement bank" required error={errors.bankCode}>
             {({ id, invalid }) => (
-              <Select id={id} invalid={invalid} value={bankCode} onChange={(e) => setBankCode(e.target.value)}>
-                <option value="" disabled>Select bank</option>
-                {filteredBanks.map((b) => (
-                  <option key={b.code} value={b.code}>{b.name}</option>
-                ))}
-              </Select>
+              <>
+                <Input
+                  id={id}
+                  invalid={invalid}
+                  type="text"
+                  list="banks-datalist"
+                  placeholder="Type or select bank..."
+                  value={banks.find((b) => b.code === bankCode)?.name || bankCode}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const match = banks.find((b) => b.name === val);
+                    if (match) {
+                      setBankCode(match.code);
+                      setErrors((prev) => ({ ...prev, bankCode: "" }));
+                    } else {
+                      setBankCode(val);
+                    }
+                  }}
+                />
+                <datalist id="banks-datalist">
+                  {banks.map((b) => (
+                    <option key={b.code} value={b.name} />
+                  ))}
+                </datalist>
+              </>
             )}
           </Field>
           <Field label="Account number" required error={errors.accountNumber}>

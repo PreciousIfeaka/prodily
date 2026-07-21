@@ -330,3 +330,76 @@ h1, h2, h3 {
 }
 @utility animate-accordion-down { animation: accordion-down 0.2s ease-out; }
 @utility animate-accordion-up { animation: accordion-up 0.2s ease-out; }
+
+/* ===== Mobile Screen Compact Responsiveness overrides ===== */
+@media (max-w: 640px) {
+  /* Typography scale compaction */
+  .t-display {
+    font-size: 1.5rem !important;
+    letter-spacing: -0.015em !important;
+  }
+  .t-h1 {
+    font-size: 1.2rem !important;
+  }
+  .t-h2 {
+    font-size: 1.05rem !important;
+  }
+  .t-h3 {
+    font-size: 0.95rem !important;
+  }
+  .t-body {
+    font-size: 0.8125rem !important;
+  }
+  .t-small {
+    font-size: 0.75rem !important;
+  }
+
+  /* Compact padding for the main app shell container */
+  main {
+    padding: 0.875rem !important;
+  }
+
+  /* Make Card paddings more compact */
+  .p-6, .p-8, .p-10, [class*="p-6"], [class*="p-8"] {
+    padding: 1rem !important;
+  }
+  
+  /* Tighter grid spacing */
+  .gap-6 {
+    gap: 0.875rem !important;
+  }
+  .gap-8 {
+    gap: 1rem !important;
+  }
+
+  /* Tighter space-y-6 container gaps */
+  .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1rem !important;
+  }
+  
+  /* Tighter space-y-4 gaps */
+  .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.75rem !important;
+  }
+
+  /* Align inputs, forms, and buttons more compactly */
+  input, select, textarea, button {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    font-size: 0.8125rem !important;
+  }
+
+  /* Stepper / Wizard components compact layout */
+  .flex.items-center.justify-between.gap-4 {
+    gap: 0.5rem !important;
+  }
+
+  /* Stats / KPI numbers size compaction */
+  .text-3xl {
+    font-size: 1.75rem !important;
+  }
+  .text-2xl {
+    font-size: 1.5rem !important;
+  }
+}
+

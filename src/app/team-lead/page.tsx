@@ -234,6 +234,17 @@ export default function TeamLeadDashboard() {
   const teamName = team ? team.name : "My Team";
   const teamBalance = wallet ? Number(wallet.balance ?? 0) : 0;
 
+  const approvedThisWeek = approvedTasks.filter((task: any) => {
+    if (!task.approvedAt) return false;
+    const approvedDate = new Date(task.approvedAt);
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day;
+    const startOfWeek = new Date(now.setDate(diff));
+    startOfWeek.setHours(0, 0, 0, 0);
+    return approvedDate >= startOfWeek;
+  });
+
   const tabs: TabItem[] = [
     { key: "reviews", label: "Task Reviews", count: tasksForReview.length },
     { key: "approvals", label: "Approvals", count: pendingRequests.length },
@@ -259,7 +270,8 @@ export default function TeamLeadDashboard() {
 
       {loading ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <SkeletonCard className="h-24" />
             <SkeletonCard className="h-24" />
             <SkeletonCard className="h-24" />
             <SkeletonCard className="h-24" />
@@ -270,7 +282,7 @@ export default function TeamLeadDashboard() {
         <ErrorState onRetry={loadData} message="We couldn't load your workspace. Please try again." />
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <StatCard tone="brand" icon={<Coins className="w-5 h-5" />} label="Team wallet balance" value={`₦${teamBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
             <div
               onClick={() => setModal("members")}
@@ -284,6 +296,7 @@ export default function TeamLeadDashboard() {
               />
             </div>
             <StatCard icon={<CheckSquare className="w-5 h-5" />} label="Tasks for review" value={tasksForReview.length} />
+            <StatCard icon={<CheckSquare className="w-5 h-5 text-[var(--brand-bright)]" />} label="Approved (This Week)" value={approvedThisWeek.length} hint="Verifications since Sunday" />
           </div>
 
           <Tabs tabs={tabs} active={tab} onChange={setTab} />
@@ -327,11 +340,12 @@ export default function TeamLeadDashboard() {
                   <h3 className="t-h3 text-[var(--text)] mb-4 flex items-center gap-2">
                     <CheckSquare className="w-5 h-5 text-[var(--brand-bright)]" /> Already approved tasks
                   </h3>
-                  <Table columns={["Employee", "Task", "Priority", "Status"]} caption="Approved tasks list">
+                  <Table columns={["Employee", "Task", "Priority", "Approved At"]} caption="Approved tasks list">
                     {approvedTasks.map((t) => {
                       const empName = t.userTasks?.[0]?.user 
                         ? `${t.userTasks[0].user.firstName} ${t.userTasks[0].user.lastName}` 
                         : (t.creator ? `${t.creator.firstName} ${t.creator.lastName}` : "Employee");
+                      const approvedTime = t.approvedAt ? new Date(t.approvedAt).toLocaleDateString() : "Recently";
                       return (
                         <Tr key={t.id}>
                           <Td className="font-medium text-[var(--muted)]">{empName}</Td>
@@ -339,8 +353,8 @@ export default function TeamLeadDashboard() {
                           <Td>
                             <Badge tone="neutral">{t.priority}</Badge>
                           </Td>
-                          <Td>
-                            <Badge tone="success">Approved</Badge>
+                          <Td className="text-xs text-[var(--muted)]">
+                            {approvedTime}
                           </Td>
                         </Tr>
                       );

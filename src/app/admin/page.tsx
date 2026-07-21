@@ -2,7 +2,7 @@
 
 import { useEffect, useState, startTransition } from "react";
 import { getMeAction, getOrgWalletAction } from "@/app/actions/auth";
-import { getTeamsAction, deleteTeamAction, updateOrgSettingsAction } from "@/app/actions/onboarding";
+import { getTeamsAction, deleteTeamAction, updateOrgSettingsAction, reserveAccountAction } from "@/app/actions/onboarding";
 import {
   listTeamWalletsAction,
   getRewardRequestsAction,
@@ -23,6 +23,7 @@ import {
   Edit,
   Trash2,
   Settings,
+  AlertCircle,
 } from "lucide-react";
 import {
   PageHeader,
@@ -69,7 +70,33 @@ export default function AdminDashboard() {
   const [pointToAmountVal, setPointToAmountVal] = useState("1.00");
   const [settingsLoading, setSettingsLoading] = useState(false);
 
+  const [bvn, setBvn] = useState("");
+  const [bvnError, setBvnError] = useState("");
+  const [reserveAccountLoading, setReserveAccountLoading] = useState(false);
+
   const { toast } = useToast();
+
+  const handleReserveAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bvn || bvn.length !== 11) {
+      setBvnError("BVN must be exactly 11 digits.");
+      return;
+    }
+    setReserveAccountLoading(true);
+    try {
+      const res = await reserveAccountAction(bvn);
+      if (res.success) {
+        toast("Reserved account generated successfully.");
+        loadData();
+      } else {
+        toast(res.error || "Failed to generate reserved account.");
+      }
+    } catch {
+      toast("Connection error.");
+    } finally {
+      setReserveAccountLoading(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -210,6 +237,47 @@ export default function AdminDashboard() {
         </div>
       ) : error ? (
         <ErrorState onRetry={loadData} message="We couldn't load the dashboard. Please try again." />
+      ) : !orgWallet?.reservedAccountDetails?.accountNumber ? (
+        <Card className="p-6 max-w-lg mx-auto mt-10">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <span className="w-12 h-12 rounded-full bg-[var(--brand-tint)] grid place-items-center text-[var(--brand-bright)]">
+              <Building className="w-6 h-6" />
+            </span>
+            <div className="space-y-1.5">
+              <h2 className="t-h1 text-[var(--text)] font-semibold">Setup Reserved Account</h2>
+              <p className="t-body text-[var(--muted)] max-w-sm">
+                Reserve a virtual bank account with Monnify to receive and process instant wallet funding transfers for your organization.
+              </p>
+            </div>
+            <form onSubmit={handleReserveAccountSubmit} className="w-full space-y-4 pt-4 border-t border-[var(--line)]">
+              <Field label="Bank Verification Number (BVN)" required error={bvnError}>
+                {({ id, invalid }) => (
+                  <Input
+                    id={id}
+                    invalid={invalid}
+                    type="text"
+                    maxLength={11}
+                    placeholder="Enter your 11-digit BVN"
+                    value={bvn}
+                    onChange={(e) => {
+                      setBvn(e.target.value.replace(/\D/g, ""));
+                      setBvnError("");
+                    }}
+                  />
+                )}
+              </Field>
+              <div className="t-caption text-[var(--muted)] text-left flex items-start gap-2 bg-[var(--surface-2)] p-3 rounded-lg border border-[var(--line)]">
+                <AlertCircle className="w-4 h-4 text-[var(--brand-bright)] shrink-0 mt-0.5" />
+                <span>
+                  BVN is required strictly for regulatory identity verification (KYC) to generate a secure virtual account for your business wallet.
+                </span>
+              </div>
+              <Button type="submit" className="w-full" loading={reserveAccountLoading}>
+                Generate Reserved Account
+              </Button>
+            </form>
+          </div>
+        </Card>
       ) : (
         <>
           {/* KPIs */}

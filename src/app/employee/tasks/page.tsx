@@ -8,7 +8,7 @@ import {
   deleteTaskAction,
 } from "@/app/actions/tasks";
 import { getActiveChallengesAction } from "@/app/actions/challenges";
-import { CheckSquare, Plus, Clock, Trash2, CheckCircle2, Trophy } from "lucide-react";
+import { CheckSquare, Plus, Clock, Trash2, CheckCircle2, Trophy, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import {
   PageHeader,
@@ -156,11 +156,15 @@ export default function EmployeeTasksPage() {
 
   const counts = {
     ALL: tasks.length,
-    PENDING: tasks.filter((t) => t.status === "PENDING").length,
+    PENDING: tasks.filter((t) => t.status === "PENDING" || t.status === "REJECTED").length,
     COMPLETED: tasks.filter((t) => t.status === "COMPLETED").length,
     APPROVED: tasks.filter((t) => t.status === "APPROVED").length,
   };
-  const visible = tab === "ALL" ? tasks : tasks.filter((t) => t.status === tab);
+  const visible = tab === "ALL" 
+    ? tasks 
+    : (tab === "PENDING" 
+        ? tasks.filter((t) => t.status === "PENDING" || t.status === "REJECTED") 
+        : tasks.filter((t) => t.status === tab));
 
   return (
     <div className="space-y-6">
@@ -212,7 +216,8 @@ export default function EmployeeTasksPage() {
               {visible.map((task) => {
                 const isPendingReview = task.status === "COMPLETED";
                 const isApproved = task.status === "APPROVED";
-                const isActive = task.status === "PENDING";
+                const isRejected = task.status === "REJECTED";
+                const isActive = task.status === "PENDING" || task.status === "REJECTED";
                 return (
                   <Card key={task.id} className="p-4 flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -238,6 +243,16 @@ export default function EmployeeTasksPage() {
                         <div className="flex items-center gap-1 t-caption text-[var(--muted)] mt-1.5">
                           <Clock className="w-3.5 h-3.5" /> Due{" "}
                           {new Date(task.dueDate).toLocaleDateString()}
+                        </div>
+                      )}
+                      {isRejected && (
+                        <div className="mt-2 flex flex-col gap-1 p-2 bg-[var(--rose-tint)] border border-[var(--rose-border)] rounded-[var(--r-sm)] text-[var(--rose)] t-caption">
+                          <span className="font-semibold flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5" /> Task Rejected
+                          </span>
+                          {task.rejectionReason && (
+                            <span className="italic">Reason: {task.rejectionReason}</span>
+                          )}
                         </div>
                       )}
                     </div>

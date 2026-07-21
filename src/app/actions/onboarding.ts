@@ -267,3 +267,27 @@ export async function updateOrgSettingsAction(pointToAmountValue: number) {
     return { success: false, error: "Connection error" };
   }
 }
+
+export async function reserveAccountAction(bvn: string) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("session_token")?.value;
+  if (!token) return { success: false, error: "Unauthorized" };
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/onboarding/organization/reserve-account`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ bvn }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) return { success: false, error: result.message || "Failed to reserve account." };
+    return { success: true, reservedAccountDetails: result.data?.reservedAccountDetails || result.reservedAccountDetails || result };
+  } catch (e) {
+    console.error(e);
+    return { success: false, error: "Connection error" };
+  }
+}
