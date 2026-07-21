@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { Plus, Sparkles, Zap, ArrowRight } from "lucide-react";
-import { rewardRules as initialRules, RewardRule } from "@/lib/data";
+import { useEffect, useState, startTransition } from "react";
+import { Plus, Sparkles, Zap } from "lucide-react";
+import { getActiveChallengesAction, createChallengeAction } from "@/app/actions/challenges";
+import { getTeamsAction } from "@/app/actions/onboarding";
 import Icon from "@/components/ui/Icon";
 import { useToast } from "@/components/Toast";
 import {
@@ -15,159 +15,186 @@ import {
   Field,
   Input,
   Select,
+  Spinner,
+  EmptyState,
 } from "@/components/ui";
 
-const iconOptions = [
-  { value: "zap", label: "Lightning" },
-  { value: "droplet", label: "Droplet" },
-  { value: "circlecheck", label: "Check circle" },
-  { value: "flame", label: "Flame" },
-  { value: "sparkles", label: "Sparkles" },
-  { value: "heart", label: "Heart" },
-  { value: "user", label: "Person" },
-  { value: "book", label: "Book" },
-  { value: "trophy", label: "Trophy" },
-  { value: "wallet", label: "Wallet" },
-  { value: "ticket", label: "Ticket" },
-];
-
-const emptyForm = {
-  name: "",
-  engine: "rule_engine" as RewardRule["engine"],
-  metric: "",
-  operator: "≥",
-  threshold: "",
-  frequency: "weekly" as "daily" | "weekly" | "monthly",
-  reward: "",
-  approval: "auto-approve" as RewardRule["approval"],
-  icon: "zap",
-  tint: "violet" as RewardRule["tint"],
-};
-
 export default function RulesPage() {
-  const [rules, setRules] = useState(initialRules);
+  const [challenges, setChallenges] = useState<any[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(emptyForm);
   const { toast } = useToast();
 
-  const toggle = (id: number) => {
-    setRules((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r;
-        toast(`${r.name} ${r.enabled ? "disabled" : "enabled"}`);
-        return { ...r, enabled: !r.enabled };
-      })
-    );
+  // Form State
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("SPRINT_COMPLETION");
+  const [rewardPoints, setRewardPoints] = useState("");
+  const [totalBudget, setTotalBudget] = useState("");
+  const [teamId, setTeamId] = useState("");
+  const [formLoading, setFormLoading] = useState(false);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [challengesRes, teamsRes] = await Promise.all([
+        getActiveChallengesAction(),
+        getTeamsAction(),
+      ]);
+      if (challengesRes.success && challengesRes.challenges) {
+        setChallenges(challengesRes.challenges);
+      }
+      if (teamsRes?.success && teamsRes.teams) {
+        setTeams(teamsRes.teams);
+      }
+    } catch (err) {
+      console.error(err);
+      toast("Failed to load rules data.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const closeForm = () => {
     setShowForm(false);
-    setForm(emptyForm);
+    setName("");
+    setDescription("");
+    setCategory("SPRINT_COMPLETION");
+    setRewardPoints("");
+    setTotalBudget("");
+    setTeamId("");
   };
 
-  const createRule = () => {
-    if (!form.name.trim() || !form.metric.trim() || !form.reward.trim()) {
-      toast("Name, metric, and reward are required");
+  const handleCreateRule = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !rewardPoints || !totalBudget) {
+      toast("Name, points, and budget are required.");
       return;
     }
-    if (form.engine === "rule_engine" && !form.threshold.trim()) {
-      toast("Add a threshold, or switch this rule to AI recommendation");
-      return;
+
+    setFormLoading(true);
+    const fd = new FormData();
+    fd.append("name", name.trim());
+    fd.append("category", category);
+    fd.append("rewardPoints", rewardPoints);
+    fd.append("totalBudget", totalBudget);
+    
+    // Default start/end dates
+    const start = new Date();
+    const end = new Date();
+    end.setDate(end.getDate() + 30); // 30 days duration
+    fd.append("startDate", start.toISOString());
+    fd.append("endDate", end.toISOString());
+
+    if (teamId) {
+      fd.append("teamIds", teamId);
     }
-    const nextId = rules.reduce((max, r) => Math.max(max, r.id), 0) + 1;
-    const isAi = form.engine === "ai_recommendation";
-    const newRule: RewardRule = {
-      id: nextId,
-      name: form.name.trim(),
-      metric: form.metric.trim(),
-      operator: isAi ? "received" : form.operator,
-      threshold: isAi ? "" : form.threshold.trim(),
-      frequency: form.frequency,
-      reward: form.reward.trim(),
-      approval: isAi ? "needs approval" : form.approval,
-      icon: form.icon,
-      tint: form.tint,
-      enabled: true,
-      engine: form.engine,
-    };
-    setRules((prev) => [newRule, ...prev]);
-    toast(`${newRule.name} created`);
-    closeForm();
+
+    startTransition(async () => {
+      try {
+        const res = await createChallengeAction(null, fd);
+        if (res.success) {
+          toast(`Rule "${name}" created successfully.`);
+          closeForm();
+          loadData();
+        } else {
+          toast(res.error || "Failed to create rule.");
+        }
+      } catch {
+        toast("Connection error.");
+      } finally {
+        setFormLoading(false);
+      }
+    });
+  };
+
+  const getCategoryIcon = (cat: string) => {
+    switch (cat) {
+      case "SPRINT_COMPLETION":
+        return "zap";
+      case "PRODUCT_LAUNCH":
+        return "sparkles";
+      case "ATTENDANCE":
+        return "circlecheck";
+      default:
+        return "trophy";
+    }
+  };
+
+  const getCategoryTint = (cat: string) => {
+    switch (cat) {
+      case "SPRINT_COMPLETION":
+        return "violet";
+      case "PRODUCT_LAUNCH":
+        return "brand";
+      case "ATTENDANCE":
+        return "emerald";
+      default:
+        return "amber";
+    }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Reward Rules"
-        subtitle={`${rules.length} active rules · evaluated automatically`}
+        subtitle={`${challenges.length} active rules · evaluated automatically`}
         action={
-          <>
-            <Badge tone="warning">Sample data</Badge>
-            <Button onClick={() => setShowForm(true)} icon={<Plus className="w-[18px] h-[18px]" />}>
-              New rule
-            </Button>
-          </>
+          <Button onClick={() => setShowForm(true)} icon={<Plus className="w-[18px] h-[18px]" />}>
+            New rule
+          </Button>
         }
       />
 
-      <Link
-        href="/admin/pipeline"
-        className="flex items-center justify-between gap-3 bg-[var(--brand-tint)] border border-[var(--brand)]/20 rounded-[var(--r)] px-4 py-3 group hover:bg-[var(--brand)]/15 transition"
-      >
-        <div className="t-small text-[var(--brand-bright)]">
-          <b className="font-medium">See these rules in action</b> — track requests through the reward pipeline board.
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Spinner size={28} />
         </div>
-        <ArrowRight size={16} className="text-[var(--brand-bright)] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-      </Link>
-
-      <div className="space-y-3">
-        {rules.map((r) => (
-          <Card key={r.id} className="p-4 flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-[var(--r)] grid place-items-center shrink-0 bg-[var(--surface-3)] text-[var(--brand-bright)]">
-              <Icon name={r.icon} size={20} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <div className="t-small font-medium text-[var(--text)]">{r.name}</div>
-                <Badge tone={r.engine === "ai_recommendation" ? "brand" : "neutral"}>
-                  {r.engine === "ai_recommendation" ? <Sparkles size={10} /> : <Zap size={10} />}
-                  {r.engine === "ai_recommendation" ? "AI" : "Rule engine"}
+      ) : challenges.length === 0 ? (
+        <EmptyState
+          icon={<Zap className="w-6 h-6" />}
+          title="No reward rules"
+          description="Create your first rule to automatically evaluate and trigger employee rewards."
+        />
+      ) : (
+        <div className="space-y-3">
+          {challenges.map((r) => {
+            const icon = getCategoryIcon(r.category);
+            const tint = getCategoryTint(r.category);
+            return (
+              <Card key={r.id} className="p-4 flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-[var(--r)] grid place-items-center shrink-0 bg-[var(--surface-3)] text-[var(--brand-bright)]">
+                  <Icon name={icon} size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className="t-small font-medium text-[var(--text)]">{r.name}</div>
+                    <Badge tone={r.category === "PRODUCT_LAUNCH" ? "brand" : "neutral"}>
+                      {r.category === "PRODUCT_LAUNCH" ? <Sparkles size={10} /> : <Zap size={10} />}
+                      {r.category.replace(/_/g, " ")}
+                    </Badge>
+                  </div>
+                  <div className="t-caption text-[var(--muted)] leading-relaxed">
+                    {r.description || "Active performance tracking rule"} · Automatic Evaluator →{" "}
+                    <span className="inline-block bg-[var(--brand-tint)] text-[var(--brand-bright)] font-medium t-caption px-2 py-0.5 rounded-[var(--r-pill)] align-middle">
+                      +{Number(r.rewardPoints).toLocaleString()} pts
+                    </span>
+                    {` · budget limit ₦${Number(r.totalBudget || 0).toLocaleString()}`}
+                  </div>
+                </div>
+                <Badge tone={r.isActive ? "success" : "neutral"}>
+                  {r.isActive ? "Active" : "Inactive"}
                 </Badge>
-              </div>
-              <div className="t-caption text-[var(--muted)] leading-relaxed">
-                If <b className="text-[var(--brand-bright)] font-medium">{r.metric}</b>
-                {r.threshold ? (
-                  <> {r.operator} <b className="text-[var(--brand-bright)] font-medium">{r.threshold}</b></>
-                ) : (
-                  <> {r.operator}</>
-                )}{" "}
-                · {r.frequency} →{" "}
-                <span className="inline-block bg-[var(--brand-tint)] text-[var(--brand-bright)] font-medium t-caption px-2 py-0.5 rounded-[var(--r-pill)] align-middle">
-                  {r.reward}
-                </span>
-                {r.engine === "ai_recommendation"
-                  ? " · always routed to a manager"
-                  : r.approval === "needs approval"
-                  ? " · needs approval"
-                  : " · auto-approve"}
-              </div>
-            </div>
-            <button
-              onClick={() => toggle(r.id)}
-              aria-label={`Toggle ${r.name}`}
-              className={`w-[46px] h-[27px] rounded-[var(--r-pill)] relative shrink-0 transition-colors ${
-                r.enabled ? "bg-[var(--brand)]" : "bg-[var(--surface-3)]"
-              }`}
-            >
-              <span
-                className={`absolute w-[21px] h-[21px] rounded-full bg-white top-[3px] shadow-[var(--sh-sm)] transition-all ${
-                  r.enabled ? "right-[3px]" : "left-[3px]"
-                }`}
-              />
-            </button>
-          </Card>
-        ))}
-      </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <Modal
         open={showForm}
@@ -177,82 +204,56 @@ export default function RulesPage() {
         footer={
           <>
             <Button variant="ghost" onClick={closeForm}>Cancel</Button>
-            <Button onClick={createRule}>Create rule</Button>
+            <Button onClick={handleCreateRule} loading={formLoading}>Create rule</Button>
           </>
         }
       >
-        <div className="space-y-4">
-          <Field label="Rule name">
+        <form onSubmit={handleCreateRule} className="space-y-4">
+          <Field label="Rule name" required>
             {({ id }) => (
-              <Input id={id} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Sprint Completion Bonus" />
+              <Input id={id} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sprint Completion Bonus" required />
             )}
           </Field>
-          <Field label="Evaluated by">
-            {() => (
-              <div className="grid grid-cols-2 gap-2">
-                {(["rule_engine", "ai_recommendation"] as const).map((eng) => (
-                  <button
-                    key={eng}
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, engine: eng }))}
-                    className={`text-left rounded-[var(--r)] border px-3 py-2 transition-colors ${
-                      form.engine === eng ? "border-[var(--brand)] bg-[var(--brand-tint)]" : "border-[var(--line-2)] hover:bg-[var(--surface-3)]"
-                    }`}
-                  >
-                    <div className={`flex items-center gap-1.5 t-small font-medium ${form.engine === eng ? "text-[var(--brand-bright)]" : "text-[var(--text)]"}`}>
-                      {eng === "rule_engine" ? <Zap size={13} /> : <Sparkles size={13} />}
-                      {eng === "rule_engine" ? "Rule engine" : "AI recommendation"}
-                    </div>
-                    <div className="t-caption text-[var(--muted)] mt-0.5">
-                      {eng === "rule_engine" ? "Deterministic threshold check" : "Always sent to a manager"}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </Field>
-          <Field label="Metric">
+          <Field label="Description">
             {({ id }) => (
-              <Input id={id} value={form.metric} onChange={(e) => setForm((f) => ({ ...f, metric: e.target.value }))} placeholder="e.g. Sprint Completion" />
+              <Input id={id} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Triggers when sprint tasks hit 100% completion" />
             )}
           </Field>
-          {form.engine === "rule_engine" && (
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Operator">
-                {({ id }) => (
-                  <Select id={id} value={form.operator} onChange={(e) => setForm((f) => ({ ...f, operator: e.target.value }))}>
-                    <option value="≥">≥</option>
-                    <option value="≤">≤</option>
-                    <option value="=">=</option>
-                    <option value="received">received</option>
-                    <option value="completed">completed</option>
-                  </Select>
-                )}
-              </Field>
-              <Field label="Threshold" className="col-span-2">
-                {({ id }) => (
-                  <Input id={id} value={form.threshold} onChange={(e) => setForm((f) => ({ ...f, threshold: e.target.value }))} placeholder="e.g. 100% or 7 days" />
-                )}
-              </Field>
-            </div>
-          )}
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Frequency">
+            <Field label="Category" required>
               {({ id }) => (
-                <Select id={id} value={form.frequency} onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value as typeof form.frequency }))}>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
+                <Select id={id} value={category} onChange={(e) => setCategory(e.target.value)}>
+                  <option value="SPRINT_COMPLETION">Sprint Completion</option>
+                  <option value="PRODUCT_LAUNCH">Product Launch</option>
+                  <option value="ATTENDANCE">Attendance</option>
+                  <option value="INNOVATION">Innovation</option>
                 </Select>
               )}
             </Field>
-            <Field label="Reward">
+            <Field label="Assign to team (optional)">
               {({ id }) => (
-                <Input id={id} value={form.reward} onChange={(e) => setForm((f) => ({ ...f, reward: e.target.value }))} placeholder="e.g. +300 pts" />
+                <Select id={id} value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+                  <option value="">All Teams (organization-wide)</option>
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </Select>
               )}
             </Field>
           </div>
-        </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Reward (Points)" required>
+              {({ id }) => (
+                <Input id={id} type="number" min="1" value={rewardPoints} onChange={(e) => setRewardPoints(e.target.value)} placeholder="e.g. 300" required />
+              )}
+            </Field>
+            <Field label="Max budget allocation (₦)" required>
+              {({ id }) => (
+                <Input id={id} type="number" min="1" value={totalBudget} onChange={(e) => setTotalBudget(e.target.value)} placeholder="e.g. 50000" required />
+              )}
+            </Field>
+          </div>
+        </form>
       </Modal>
     </div>
   );

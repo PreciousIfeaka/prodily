@@ -20,7 +20,6 @@ export default function MarketplacePage() {
       <PageHeader
         title="Rewards Marketplace"
         subtitle="Spend your points on perks and vouchers."
-        action={<Badge tone="warning">Sample data</Badge>}
       />
 
       <Card className="p-4 flex items-center justify-between bg-[var(--surface-3)]">

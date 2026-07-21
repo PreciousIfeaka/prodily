@@ -26,7 +26,14 @@ export async function signInAction(prevState: any, formData: FormData) {
       return { success: false, error: result.message || "Invalid credentials." };
     }
 
-    const { token, role, firstName, lastName } = result.data || result;
+    const body = result.data || result;
+
+    // Detect if user is an unverified admin and an OTP resend was triggered
+    if (body.message === "OTP resent successfully." || (!body.token && body.email)) {
+      return { success: true, needsOtpVerification: true, email: body.email };
+    }
+
+    const { token, role, firstName, lastName } = body;
 
     const cookieStore = await cookies();
     cookieStore.set("session_token", token, {
@@ -51,6 +58,28 @@ export async function signInAction(prevState: any, formData: FormData) {
     return { success: false, error: "Failed to connect to authentication server." };
   }
 }
+
+export async function resendOtpAction(email: string) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/onboarding/organization/resend-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: result.message || "Failed to resend OTP." };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Resend OTP action error:", error);
+    return { success: false, error: "Failed to connect to authentication server." };
+  }
+}
+
 
 export async function signUpAction(prevState: any, formData: FormData) {
   const name = formData.get("name")?.toString().trim();
@@ -118,7 +147,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
       return { success: false, error: result.message || "Invalid OTP code." };
     }
 
-    const { token, admin } = result.data || result;
+    const { token, admin, orgWallet } = result.data || result;
     const role = admin.userRole.toLowerCase();
 
     const cookieStore = await cookies();
@@ -138,7 +167,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    return { success: true, role, name: `${admin.firstName} ${admin.lastName}` };
+    return { success: true, role, name: `${admin.firstName} ${admin.lastName}`, orgWallet };
   } catch (error: any) {
     console.error("Verify OTP action error:", error);
     return { success: false, error: "Failed to connect to authentication server." };

@@ -31,9 +31,14 @@ export default function SignInPage() {
       try {
         const res = await signInAction(null, formData);
         if (res.success) {
-          celebrate(`Welcome back, ${res.name}!`);
-          router.push(getRoleHome(res.role));
-          router.refresh();
+          if (res.needsOtpVerification) {
+            celebrate("Account not verified yet. Redirecting to verify OTP...");
+            router.push(`/signup?step=2&email=${encodeURIComponent(res.email)}`);
+          } else {
+            celebrate(`Welcome back, ${res.name}!`);
+            router.push(getRoleHome(res.role));
+            router.refresh();
+          }
         } else {
           setError(res.error || "Invalid email or password.");
           setLoading(false);

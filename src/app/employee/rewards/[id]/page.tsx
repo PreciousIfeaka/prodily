@@ -29,9 +29,7 @@ export default function RewardDetailPage({ params }: { params: Promise<{ id: str
           >
             <ArrowLeft size={20} />
           </button>
-          <span className="absolute top-4 right-4">
-            <Badge tone="warning">Sample data</Badge>
-          </span>
+
           <Icon name={reward.icon} size={72} color="#fff" />
         </div>
 

@@ -1,19 +1,68 @@
 "use client";
 
-import { useState, startTransition, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, startTransition, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { signUpAction, verifyOtpAction } from "@/app/actions/auth";
+import { signUpAction, verifyOtpAction, resendOtpAction } from "@/app/actions/auth";
 import { useToast } from "@/components/Toast";
 import { UserPlus, Building, Mail, Lock, ShieldAlert, ArrowRight, ArrowLeft } from "lucide-react";
 import { Button, Input, Select, Field, Logo, Stepper } from "@/components/ui";
 
 const STEPS = ["Organization", "Administrator", "Verify"];
 
-export default function SignUpPage() {
+function SignUpPageContent() {
   const [step, setStep] = useState(0);
-  const [otpCode, setOtpCode] = useState("");
+  const [otpValues, setOtpValues] = useState<string[]>(Array(6).fill(""));
+  const otpCode = otpValues.join("");
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [registeredEmail, setRegisteredEmail] = useState("");
+  
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const queryStep = searchParams.get("step");
+    const queryEmail = searchParams.get("email");
+    if (queryStep === "2" && queryEmail) {
+      setStep(2);
+      setRegisteredEmail(queryEmail);
+    }
+  }, [searchParams]);
+
+  const handleOtpChange = (index: number, val: string) => {
+    const cleanVal = val.replace(/\D/g, "").slice(-1);
+    const newOtp = [...otpValues];
+    newOtp[index] = cleanVal;
+    setOtpValues(newOtp);
+
+    if (cleanVal && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (!otpValues[index] && index > 0) {
+        const newOtp = [...otpValues];
+        newOtp[index - 1] = "";
+        setOtpValues(newOtp);
+        inputRefs.current[index - 1]?.focus();
+      } else {
+        const newOtp = [...otpValues];
+        newOtp[index] = "";
+        setOtpValues(newOtp);
+      }
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").trim();
+    if (!/^\d{6}$/.test(pastedData)) return;
+
+    const digits = pastedData.split("");
+    setOtpValues(digits);
+    inputRefs.current[5]?.focus();
+  };
 
   const [name, setName] = useState("");
   const [industry, setIndustry] = useState("Technology");
@@ -28,7 +77,7 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [resendIn, setResendIn] = useState(0);
   const router = useRouter();
-  const { celebrate } = useToast();
+  const { celebrate, toast } = useToast();
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -95,9 +144,13 @@ export default function SignUpPage() {
     if (resendIn > 0) return;
     setBanner("");
     startTransition(async () => {
-      const res = await signUpAction(null, buildPayload());
-      if (res.success) setResendIn(30);
-      else setBanner(res.error || "Could not resend the code.");
+      const res = await resendOtpAction(registeredEmail);
+      if (res.success) {
+        toast("Verification code resent.");
+        setResendIn(30);
+      } else {
+        setBanner(res.error || "Could not resend the code.");
+      }
     });
   };
 
@@ -297,16 +350,25 @@ export default function SignUpPage() {
               </p>
               <Field label="One-time password" error={errors.otp}>
                 {({ id, invalid }) => (
-                  <Input
-                    id={id}
-                    invalid={invalid}
-                    inputMode="numeric"
-                    maxLength={6}
-                    className="text-center font-mono text-2xl tracking-[10px]"
-                    placeholder="000000"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  />
+                  <div className="flex justify-between gap-2 sm:gap-3 py-2" id={id}>
+                    {otpValues.map((digit, idx) => (
+                      <input
+                        key={idx}
+                        ref={(el) => { inputRefs.current[idx] = el; }}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(idx, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                        onPaste={handleOtpPaste}
+                        className={`w-11 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold font-mono rounded-[var(--r)] border bg-[var(--surface-2)] text-[var(--text)] transition-all outline-none duration-150
+                          ${invalid ? 'border-[var(--rose)] focus:border-[var(--rose)] focus:ring-1 focus:ring-[var(--rose)]' : 'border-[var(--line-2)] focus:border-[var(--brand-bright)] focus:ring-1 focus:ring-[var(--brand-bright)]/40 focus:shadow-[0_0_12px_rgba(85,211,150,0.15)]'}
+                        `}
+                      />
+                    ))}
+                  </div>
                 )}
               </Field>
               <Button type="submit" loading={loading} disabled={otpCode.length !== 6} fullWidth size="lg">
@@ -325,7 +387,7 @@ export default function SignUpPage() {
                   type="button"
                   onClick={() => {
                     setStep(0);
-                    setOtpCode("");
+                    setOtpValues(Array(6).fill(""));
                     setBanner("");
                   }}
                   className="font-medium text-[var(--muted)] hover:text-[var(--text)]"
@@ -345,5 +407,19 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[85vh] flex flex-col items-center justify-center py-10 px-4 relative z-10">
+        <div className="max-w-2xl w-full bg-[var(--surface)]/90 backdrop-blur-xl border border-[var(--line-2)] rounded-[var(--r-xl)] p-8 sm:p-10 shadow-[var(--sh-lg)] flex justify-center items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--brand-bright)]"></div>
+        </div>
+      </div>
+    }>
+      <SignUpPageContent />
+    </Suspense>
   );
 }

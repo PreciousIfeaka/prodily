@@ -10,12 +10,14 @@ export default function FundWalletModal({
   onClose,
   organizationId,
   teamWallets,
+  orgWallet,
   onDone,
 }: {
   open: boolean;
   onClose: () => void;
   organizationId: string;
   teamWallets: any[];
+  orgWallet?: any;
   onDone: () => void;
 }) {
   const [mode, setMode] = useState("org");
@@ -36,6 +38,9 @@ export default function FundWalletModal({
     const fd = new FormData();
     fd.append("organizationId", organizationId);
     fd.append("amount", orgAmount);
+    if (orgWallet?.reservedAccountDetails?.accountNumber) {
+      fd.append("accountNumber", orgWallet.reservedAccountDetails.accountNumber);
+    }
     startTransition(async () => {
       try {
         const res = await fundOrgWalletAction(null, fd);
@@ -112,13 +117,39 @@ export default function FundWalletModal({
           onChange={setMode}
         />
         {mode === "org" ? (
-          <form onSubmit={submitOrg}>
-            <Field label="Amount (NGN)" required error={errors.orgAmount}>
-              {({ id, invalid }) => (
-                <Input id={id} invalid={invalid} type="number" min="100" placeholder="e.g. 50000" value={orgAmount} onChange={(e) => setOrgAmount(e.target.value)} />
+          <div className="space-y-4">
+            {orgWallet?.reservedAccountDetails && (
+              <div className="p-4 bg-[var(--indigo-tint)] rounded-[var(--r)] border border-[var(--indigo)]/20 space-y-2.5">
+                <p className="t-small font-semibold text-[var(--indigo)]">Corporate Funding Details</p>
+                <p className="t-caption text-[var(--muted)]">Send bank transfers to this virtual account to fund your organization wallet instantly.</p>
+                <div className="grid grid-cols-2 gap-y-2 t-caption bg-white/60 p-3 rounded border border-[var(--line)]">
+                  <span className="text-[var(--muted)] font-medium">Bank Name</span>
+                  <span className="text-[var(--text)] font-semibold text-right">{orgWallet.reservedAccountDetails.bankName || 'Monnify Provider'}</span>
+                  
+                  <span className="text-[var(--muted)] font-medium">Account Number</span>
+                  <span className="text-[var(--text)] font-semibold text-right font-mono flex items-center justify-end gap-1.5">
+                    {orgWallet.reservedAccountDetails.accountNumber}
+                  </span>
+                  
+                  <span className="text-[var(--muted)] font-medium">Account Name</span>
+                  <span className="text-[var(--text)] font-semibold text-right">{orgWallet.reservedAccountDetails.accountName}</span>
+                </div>
+              </div>
+            )}
+            
+            <form onSubmit={submitOrg} className="space-y-3">
+              {orgWallet?.reservedAccountDetails && (
+                <div className="flex items-center justify-between border-t border-[var(--line)] pt-3">
+                  <span className="t-caption font-semibold text-[var(--text)]">Simulate Funding (Sandbox/Test)</span>
+                </div>
               )}
-            </Field>
-          </form>
+              <Field label="Amount (NGN)" required error={errors.orgAmount}>
+                {({ id, invalid }) => (
+                  <Input id={id} invalid={invalid} type="number" min="100" placeholder="e.g. 50000" value={orgAmount} onChange={(e) => setOrgAmount(e.target.value)} />
+                )}
+              </Field>
+            </form>
+          </div>
         ) : (
           <form onSubmit={submitTeam} className="space-y-4">
             <Field label="Department / team" required error={errors.teamId}>

@@ -167,6 +167,7 @@ export async function fundOrgWalletAction(prevState: any, formData: FormData) {
 
   const organizationId = formData.get("organizationId")?.toString();
   const amountStr = formData.get("amount")?.toString();
+  const accountNumber = formData.get("accountNumber")?.toString();
 
   if (!organizationId || !amountStr) {
     return { success: false, error: "Organization and amount are required." };
@@ -177,23 +178,47 @@ export async function fundOrgWalletAction(prevState: any, formData: FormData) {
     return { success: false, error: "Please enter a valid positive amount." };
   }
 
-  // Generate a random reference for the demo sandbox funding
-  const reference = `fund-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  // Generate a random reference for the Monnify transaction reference
+  const reference = `REF_WEBHOOK_DEP_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
   try {
-    const response = await fetch(`${BACKEND_URL}/wallet/fund`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        organizationId,
-        amount,
-        reference,
-        metadata: { source: "frontend_demo" },
-      }),
-    });
+    let response: Response;
+
+    if (accountNumber) {
+      // Simulate Monnify SUCCESSFUL_TRANSACTION Webhook
+      response = await fetch(`${BACKEND_URL}/monnify/webhook`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-monnify-signature": "dummy-signature-for-sandbox-bypass",
+        },
+        body: JSON.stringify({
+          eventType: "SUCCESSFUL_TRANSACTION",
+          eventData: {
+            paymentReference: reference,
+            amountPaid: amount.toFixed(2),
+            destinationAccountPaymentDetails: {
+              bankAccountNumber: accountNumber,
+            },
+          },
+        }),
+      });
+    } else {
+      // Fallback to direct wallet funding endpoint
+      response = await fetch(`${BACKEND_URL}/wallet/fund`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          organizationId,
+          amount,
+          reference,
+          metadata: { source: "frontend_demo_direct" },
+        }),
+      });
+    }
 
     const result = await response.json();
 

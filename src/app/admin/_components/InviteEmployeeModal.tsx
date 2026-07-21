@@ -6,33 +6,33 @@ import { useToast } from "@/components/Toast";
 import { Modal, Button, Field, Input, Select } from "@/components/ui";
 
 export type Team = { id: string; name: string };
-export type Invite = {
-  email: string;
-  role: string;
-  inviteLink: string;
-  teamName: string;
-  expiresAt: string;
-};
 
 export default function InviteEmployeeModal({
   open,
   onClose,
   teams,
-  onDone,
 }: {
   open: boolean;
   onClose: () => void;
   teams: Team[];
-  onDone: (invite: Invite) => void;
 }) {
   const [email, setEmail] = useState("");
   const [teamId, setTeamId] = useState(teams[0]?.id ?? "");
   const [role, setRole] = useState("TEAM_MEMBER");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   const needsTeam = role !== "ADMIN";
+
+  const handleClose = () => {
+    setGeneratedLink(null);
+    setCopied(false);
+    setEmail("");
+    onClose();
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,16 +51,9 @@ export default function InviteEmployeeModal({
       try {
         const res = await inviteUserAction(null, fd);
         if (res.success && res.inviteLink) {
-          const target = needsTeam ? teams.find((t) => t.id === teamId) : null;
+          const fullLink = `${window.location.origin}${res.inviteLink}`;
+          setGeneratedLink(fullLink);
           toast("Invitation link generated.");
-          onDone({
-            email: res.email,
-            role: res.role,
-            inviteLink: res.inviteLink,
-            teamName: target ? target.name : "Organization Admin",
-            expiresAt: res.expiresAt,
-          });
-          setEmail("");
         } else {
           toast(res.error || "Failed to generate invite.");
         }
@@ -72,15 +65,61 @@ export default function InviteEmployeeModal({
     });
   };
 
+  if (generatedLink) {
+    return (
+      <Modal
+        open={open}
+        onClose={handleClose}
+        title="Invite generated!"
+        description="Share this unique invitation link with the employee."
+        footer={
+          <Button onClick={handleClose} fullWidth>
+            Done
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-[var(--brand-tint)] rounded-[var(--r)] border border-[var(--brand)]/20 flex flex-col items-center justify-center text-center space-y-1">
+            <span className="text-[var(--brand-bright)] font-semibold">Teammate Invited!</span>
+            <span className="t-caption text-[var(--muted)]">Send this single-use registration URL to the user.</span>
+          </div>
+
+          <Field label="Invitation link">
+            {({ id }) => (
+              <div className="flex gap-2" id={id}>
+                <Input
+                  readOnly
+                  value={generatedLink}
+                  className="font-mono text-xs select-all bg-[var(--surface-2)] border-[var(--line-2)] flex-1"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedLink);
+                    setCopied(true);
+                    toast("Link copied to clipboard.");
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                >
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+            )}
+          </Field>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Invite employee"
       description="Generate a signed invitation link for a teammate."
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={handleClose}>Cancel</Button>
           <Button onClick={submit} loading={loading} disabled={needsTeam && teams.length === 0}>
             Generate invite
           </Button>

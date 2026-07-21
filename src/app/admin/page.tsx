@@ -39,7 +39,7 @@ import {
   SkeletonCard,
 } from "@/components/ui";
 import CreateTeamModal from "./_components/CreateTeamModal";
-import InviteEmployeeModal, { type Invite } from "./_components/InviteEmployeeModal";
+import InviteEmployeeModal from "./_components/InviteEmployeeModal";
 import FundWalletModal from "./_components/FundWalletModal";
 import EmergencySupportModal from "./_components/EmergencySupportModal";
 import TeamDetailsModal from "./_components/TeamDetailsModal";
@@ -54,7 +54,6 @@ export default function AdminDashboard() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [teamWallets, setTeamWallets] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
@@ -112,24 +111,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadData();
-    const saved = localStorage.getItem("prodily_invites");
-    if (saved) {
-      try {
-        setInvites(JSON.parse(saved));
-      } catch {
-        /* ignore */
-      }
-    }
   }, []);
-
-  const addInvite = (invite: Invite) => {
-    setInvites((prev) => {
-      const updated = [invite, ...prev];
-      localStorage.setItem("prodily_invites", JSON.stringify(updated));
-      return updated;
-    });
-    setModal(null);
-  };
 
   const handleDeleteTeam = () => {
     const teamId = deleteTeamId;
@@ -282,57 +264,19 @@ export default function AdminDashboard() {
             )}
           </Card>
 
-          {/* Invite links (session) */}
-          {invites.length > 0 && (
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="t-h3 text-[var(--text)]">Generated invite links</h3>
-                <Badge tone="warning">This browser only</Badge>
-              </div>
-              <Table columns={["Email", "Team", "Role", "Link"]} caption="Invitation links generated this session">
-                {invites.map((invite, i) => (
-                  <Tr key={i}>
-                    <Td className="font-medium">{invite.email}</Td>
-                    <Td>
-                      <Badge tone="brand">{invite.teamName}</Badge>
-                    </Td>
-                    <Td className="text-[var(--muted)] uppercase">{invite.role.replace(/_/g, " ")}</Td>
-                    <Td>
-                      <div className="flex items-center gap-2">
-                        <span className="t-caption bg-[var(--surface-3)] text-[var(--muted)] font-mono px-2 py-1.5 rounded-[var(--r-sm)] max-w-[180px] truncate">
-                          {invite.inviteLink}
-                        </span>
-                        <IconButton aria-label="Copy link" onClick={() => copyToClipboard(invite.inviteLink)}>
-                          {copiedLink === invite.inviteLink ? (
-                            <Check className="w-4 h-4 text-[var(--brand-bright)]" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </IconButton>
-                        <a href={invite.inviteLink} target="_blank" rel="noreferrer">
-                          <IconButton aria-label="Open link">
-                            <ExternalLink className="w-4 h-4" />
-                          </IconButton>
-                        </a>
-                      </div>
-                    </Td>
-                  </Tr>
-                ))}
-              </Table>
-            </Card>
-          )}
         </>
       )}
 
       {/* Modals */}
       <CreateTeamModal open={modal === "team"} onClose={() => setModal(null)} onDone={() => { setModal(null); refreshData(); }} />
-      <InviteEmployeeModal open={modal === "invite"} onClose={() => setModal(null)} teams={teams} onDone={addInvite} />
+      <InviteEmployeeModal open={modal === "invite"} onClose={() => setModal(null)} teams={teams} />
       {adminUser && (
         <FundWalletModal
           open={modal === "fund"}
           onClose={() => setModal(null)}
           organizationId={adminUser.organizationId}
           teamWallets={teamWallets}
+          orgWallet={orgWallet}
           onDone={() => { setModal(null); refreshData(); }}
         />
       )}
