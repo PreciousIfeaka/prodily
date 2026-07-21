@@ -98,7 +98,7 @@ export default function EmployeeWalletPage() {
         } finally {
           setResolvingAccount(false);
         }
-      }, 600); // debounce API call
+      }, 600);
 
       return () => clearTimeout(timer);
     } else {
@@ -501,9 +501,9 @@ export default function EmployeeWalletPage() {
                       {billerProductsLoading ? (
                         <option>Loading data plans...</option>
                       ) : billerProducts.filter(item => {
-                          const catCode = item.category?.code || (item.categories && item.categories[0]?.code);
-                          return catCode === 'DATA_BUNDLE' || catCode === 'DATA';
-                        }).length === 0 ? (
+                        const catCode = item.category?.code || (item.categories && item.categories[0]?.code);
+                        return catCode === 'DATA_BUNDLE' || catCode === 'DATA';
+                      }).length === 0 ? (
                         <option>No data plans available</option>
                       ) : (
                         billerProducts.filter(item => {

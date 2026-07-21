@@ -411,64 +411,125 @@ function AIRecommend() {
 }
 
 /* ---------------- TRUST ---------------- */
-function Trust() {
-  return (
-    <section className="py-20 md:py-28 border-t border-white/5">
-      <div className="mx-auto max-w-7xl px-6">
-        <p className="text-center text-sm text-muted-foreground">
-          Helping companies build workplaces people love.
-        </p>
-        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { n: "10,000+", l: "Rewards Delivered", icon: Gift, tone: "primary" },
-            { n: "95%", l: "Employee Engagement", icon: TrendingUp, tone: "emerald" },
-            { n: "500+", l: "Companies", icon: Users, tone: "blue" },
-            { n: "₦50M+", l: "Rewards Processed", icon: Wallet, tone: "gold" },
-          ].map((s, i) => (
-            <Stat key={s.l} {...s} delay={i * 0.1} />
-          ))}
-        </div>
-        <LogoMarquee />
-      </div>
-    </section>
-  );
-}
+const row1Brands = [
+  { name: "Shuttlers", code: "SH", color: "#3b82f6" },
+  { name: "Chowdeck", code: "CD", color: "#f05a24" },
+  { name: "Glovo", code: "GL", color: "#ffc000", textDark: true },
+  { name: "Uber", code: "UB", color: "#8a8a8a" },
+  { name: "Bolt", code: "BO", color: "#34d399" },
+  { name: "inDrive", code: "ID", color: "#22c55e" },
+];
 
-function Stat({ n, l, icon: Icon, tone, delay }: { n: string; l: string; icon: typeof Gift; tone: string; delay: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-  const toneCls =
-    tone === "gold" ? "text-gold" :
-    tone === "emerald" ? "text-emerald-reward" :
-    tone === "blue" ? "text-blue-analytics" : "text-violet-soft";
+const row2Brands = [
+  { name: "MTN", code: "MTN", color: "#facc15", textDark: true },
+  { name: "Airtel", code: "AT", color: "#ef4444" },
+  { name: "Glo", code: "GO", color: "#22c55e" },
+  { isMonnify: true }, // Special Monnify card
+  { name: "9mobile", code: "9M", color: "#15803d" },
+  { name: "Jumia", code: "JM", color: "#f97316" },
+  { name: "Konga", code: "KG", color: "#ec4899" },
+];
+
+const row3Brands = [
+  { name: "Netflix", code: "NF", color: "#e50914" },
+  { name: "Udemy", code: "UD", color: "#a855f7" },
+  { name: "Apple Music", code: "AM", color: "#fa243c" },
+  { name: "Coursera", code: "CR", color: "#2563eb" },
+  { name: "AltSchool Africa", code: "AS", color: "#8b5cf6" },
+  { name: "Spotify", code: "SP", color: "#1db954" },
+  { name: "Showmax", code: "SM", color: "#4f46e5" },
+  { name: "Chicken Republic", code: "CR", color: "#ef4444" },
+  { name: "Domino’s Pizza", code: "DP", color: "#1e3a8a" },
+  { name: "The Place", code: "TP", color: "#b45309" },
+];
+
+function BrandChip({ brand }: { brand: any }) {
+  if (brand.isMonnify) {
+    return (
+      <div className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-[var(--brand-tint)] border border-[var(--brand-bright)]/40 shadow-[0_0_20px_rgba(85,211,150,0.15)] shrink-0 mx-2 hover:scale-105 hover:border-[var(--brand-bright)] hover:shadow-[0_0_30px_rgba(85,211,150,0.35)] transition-all duration-300">
+        <span className="w-8 h-8 rounded-full bg-[var(--brand)] text-white font-bold flex items-center justify-center text-sm shadow-md">
+          M
+        </span>
+        <div className="text-left leading-tight">
+          <div className="text-[9px] font-semibold tracking-wider text-[var(--brand-bright)] uppercase">Payment Infrastructure</div>
+          <div className="text-sm font-bold text-[var(--text)]">Powered by Monnify</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 20 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay, duration: 0.6 }}
-      className="glass p-6 text-center"
-    >
-      <Icon className={`mx-auto h-5 w-5 ${toneCls} mb-3`} />
-      <div className={`text-3xl md:text-4xl font-semibold tracking-tight ${toneCls}`}>{n}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{l}</div>
-    </motion.div>
+    <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[var(--surface-2)] border border-[var(--line)] hover:border-[var(--line-2)] hover:bg-[var(--surface-3)] shrink-0 mx-2 transition-all duration-300 hover:scale-105 shadow-sm">
+      <span
+        style={{ backgroundColor: brand.color }}
+        className={`w-7 h-7 rounded-full font-bold flex items-center justify-center text-[10px] shadow-inner ${brand.textDark ? "text-black" : "text-white"}`}
+      >
+        {brand.code}
+      </span>
+      <span className="text-sm font-medium text-[var(--text)]">{brand.name}</span>
+    </div>
   );
 }
 
 function LogoMarquee() {
-  const logos = ["Northwind", "Acme Co", "Lumen", "Paystack", "Flutterwave", "Kuda", "Andela", "Piggyvest", "Bamboo", "Reliance"];
-  const doubled = [...logos, ...logos];
+  const r1 = [...row1Brands, ...row1Brands, ...row1Brands, ...row1Brands];
+  const r2 = [...row2Brands, ...row2Brands, ...row2Brands, ...row2Brands];
+  const r3 = [...row3Brands, ...row3Brands, ...row3Brands, ...row3Brands];
+
   return (
-    <div className="mt-14 relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background to-transparent z-10" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background to-transparent z-10" />
-      <div className="flex gap-12 animate-marquee whitespace-nowrap">
-        {doubled.map((l, i) => (
-          <span key={i} className="text-lg md:text-xl font-display italic text-muted-foreground/60">{l}</span>
-        ))}
+    <div className="relative overflow-hidden w-full flex flex-col gap-6 py-6 mt-6">
+      {/* Subtle edge fades */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[var(--bg)] to-transparent z-10" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[var(--bg)] to-transparent z-10" />
+
+      {/* Row 1 - Left to Right */}
+      <div className="flex w-full overflow-hidden">
+        <div className="flex gap-2 animate-marquee whitespace-nowrap hover:[animation-play-state:paused] py-1">
+          {r1.map((brand, i) => (
+            <BrandChip key={`r1-${i}`} brand={brand} />
+          ))}
+        </div>
+      </div>
+
+      {/* Row 2 - Right to Left (Reverse) */}
+      <div className="flex w-full overflow-hidden">
+        <div className="flex gap-2 animate-marquee-reverse whitespace-nowrap hover:[animation-play-state:paused] py-1">
+          {r2.map((brand, i) => (
+            <BrandChip key={`r2-${i}`} brand={brand} />
+          ))}
+        </div>
+      </div>
+
+      {/* Row 3 - Left to Right */}
+      <div className="flex w-full overflow-hidden">
+        <div className="flex gap-2 animate-marquee whitespace-nowrap hover:[animation-play-state:paused] py-1">
+          {r3.map((brand, i) => (
+            <BrandChip key={`r3-${i}`} brand={brand} />
+          ))}
+        </div>
       </div>
     </div>
+  );
+}
+
+function Trust() {
+  return (
+    <section className="py-20 md:py-28 border-t border-white/5 bg-black/10 relative overflow-hidden">
+      <div className="mx-auto max-w-7xl px-6 text-center">
+        {/* Header */}
+        <div className="max-w-3xl mx-auto mb-12 space-y-4">
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white leading-tight">
+            A reward ecosystem <span className="text-[var(--brand-bright)] italic font-serif">employees actually want</span>
+          </h2>
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
+            Redeem points across food, mobility, telecoms, learning and entertainment. One wallet, hundreds of brands.
+          </p>
+        </div>
+
+        {/* Infinite Marquee Section */}
+        <LogoMarquee />
+      </div>
+    </section>
   );
 }
 

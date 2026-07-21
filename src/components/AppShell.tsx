@@ -186,7 +186,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // Marketing routes render their own nav/footer — no dashboard chrome.
   if (isMarketing) {
-    return <>{children}</>;
+    return (
+      <>
+        {/* Floating Theme Toggle for Marketing Pages */}
+        <div className="fixed top-6 right-8 z-50">
+          <IconButton onClick={toggleTheme} aria-label="Toggle theme" title="Toggle theme">
+            {isLight ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-[var(--gold)]" />}
+          </IconButton>
+        </div>
+        {children}
+      </>
+    );
   }
 
   if (isPublicPath) {
