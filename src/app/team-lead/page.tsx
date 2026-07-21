@@ -42,13 +42,14 @@ export default function TeamLeadDashboard() {
   const [wallet, setWallet] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [tasksForReview, setTasksForReview] = useState<any[]>([]);
+  const [approvedTasks, setApprovedTasks] = useState<any[]>([]);
   const [timeEntries, setTimeEntries] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [tab, setTab] = useState("reviews");
 
-  const [modal, setModal] = useState<null | "fund" | "support">(null);
+  const [modal, setModal] = useState<null | "fund" | "support" | "members">(null);
   const [fundAmount, setFundAmount] = useState("");
   const [fundLoading, setFundLoading] = useState(false);
   const [supportRecipientId, setSupportRecipientId] = useState("");
@@ -75,10 +76,11 @@ export default function TeamLeadDashboard() {
       }
       setUser(me);
       const tId = me.teamId || me.team?.id;
-      const [teamRes, walletRes, tasksRes, timeRes, reqs] = await Promise.all([
+      const [teamRes, walletRes, tasksRes, approvedTasksRes, timeRes, reqs] = await Promise.all([
         tId ? getTeamDetailsAction(tId) : Promise.resolve(null),
         tId ? getTeamWalletAction(tId) : Promise.resolve(null),
         getTasksForReviewAction("COMPLETED"),
+        getTasksForReviewAction("APPROVED"),
         getTeamTimeEntriesAction(),
         getRewardRequestsAction("PENDING"),
       ]);
@@ -88,6 +90,7 @@ export default function TeamLeadDashboard() {
       }
       if (walletRes) setWallet(walletRes);
       setTasksForReview(tasksRes || []);
+      setApprovedTasks(approvedTasksRes || []);
       if (timeRes?.success && timeRes.entries) setTimeEntries(timeRes.entries);
       const normalized = Array.isArray(reqs) ? reqs : reqs?.requests || reqs?.data || [];
       setPendingRequests(normalized);
@@ -269,36 +272,83 @@ export default function TeamLeadDashboard() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <StatCard tone="brand" icon={<Coins className="w-5 h-5" />} label="Team wallet balance" value={`₦${teamBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
-            <StatCard icon={<Users className="w-5 h-5" />} label="Team members" value={members.length} />
+            <div
+              onClick={() => setModal("members")}
+              className="cursor-pointer transition-all duration-200 hover:translate-y-[-2px] active:translate-y-0"
+            >
+              <StatCard
+                icon={<Users className="w-5 h-5" />}
+                label="Team members"
+                value={members.length}
+                hint="Click to view details"
+              />
+            </div>
             <StatCard icon={<CheckSquare className="w-5 h-5" />} label="Tasks for review" value={tasksForReview.length} />
           </div>
 
           <Tabs tabs={tabs} active={tab} onChange={setTab} />
 
           {tab === "reviews" && (
-            <Card className="p-6">
-              {tasksForReview.length === 0 ? (
-                <EmptyState icon={<CheckSquare className="w-6 h-6" />} title="Nothing to review" description="No completed tasks await approval." />
-              ) : (
-                <Table columns={["Employee", "Task", "Priority", ""]} caption="Tasks awaiting review">
-                  {tasksForReview.map((t) => (
-                    <Tr key={t.id}>
-                      <Td className="font-medium">{t.creator ? `${t.creator.firstName} ${t.creator.lastName}` : "Employee"}</Td>
-                      <Td className="max-w-[220px] truncate">{t.title}</Td>
-                      <Td>
-                        <Badge tone={t.priority === "HIGH" ? "danger" : "neutral"}>{t.priority}</Badge>
-                      </Td>
-                      <Td>
-                        <div className="flex items-center justify-end gap-2">
-                          <Button size="sm" variant="subtle" onClick={() => handleApproveTask(t.id)}>Approve</Button>
-                          <Button size="sm" variant="danger" onClick={() => setReject({ type: "task", id: t.id })}>Reject</Button>
-                        </div>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Table>
+            <div className="space-y-6">
+              <Card className="p-6">
+                <h3 className="t-h3 text-[var(--text)] mb-4 flex items-center gap-2">
+                  <CheckSquare className="w-5 h-5 text-[var(--brand-bright)]" /> Tasks awaiting review
+                </h3>
+                {tasksForReview.length === 0 ? (
+                  <EmptyState icon={<CheckSquare className="w-6 h-6" />} title="Nothing to review" description="No completed tasks await approval." />
+                ) : (
+                  <Table columns={["Employee", "Task", "Priority", ""]} caption="Tasks awaiting review">
+                    {tasksForReview.map((t) => {
+                      const empName = t.userTasks?.[0]?.user 
+                        ? `${t.userTasks[0].user.firstName} ${t.userTasks[0].user.lastName}` 
+                        : (t.creator ? `${t.creator.firstName} ${t.creator.lastName}` : "Employee");
+                      return (
+                        <Tr key={t.id}>
+                          <Td className="font-medium">{empName}</Td>
+                          <Td className="max-w-[220px] truncate">{t.title}</Td>
+                          <Td>
+                            <Badge tone={t.priority === "HIGH" ? "danger" : "neutral"}>{t.priority}</Badge>
+                          </Td>
+                          <Td>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button size="sm" variant="subtle" onClick={() => handleApproveTask(t.id)}>Approve</Button>
+                              <Button size="sm" variant="danger" onClick={() => setReject({ type: "task", id: t.id })}>Reject</Button>
+                            </div>
+                          </Td>
+                        </Tr>
+                      );
+                    })}
+                  </Table>
+                )}
+              </Card>
+
+              {approvedTasks.length > 0 && (
+                <Card className="p-6">
+                  <h3 className="t-h3 text-[var(--text)] mb-4 flex items-center gap-2">
+                    <CheckSquare className="w-5 h-5 text-[var(--brand-bright)]" /> Already approved tasks
+                  </h3>
+                  <Table columns={["Employee", "Task", "Priority", "Status"]} caption="Approved tasks list">
+                    {approvedTasks.map((t) => {
+                      const empName = t.userTasks?.[0]?.user 
+                        ? `${t.userTasks[0].user.firstName} ${t.userTasks[0].user.lastName}` 
+                        : (t.creator ? `${t.creator.firstName} ${t.creator.lastName}` : "Employee");
+                      return (
+                        <Tr key={t.id}>
+                          <Td className="font-medium text-[var(--muted)]">{empName}</Td>
+                          <Td className="max-w-[220px] truncate text-[var(--muted)]">{t.title}</Td>
+                          <Td>
+                            <Badge tone="neutral">{t.priority}</Badge>
+                          </Td>
+                          <Td>
+                            <Badge tone="success">Approved</Badge>
+                          </Td>
+                        </Tr>
+                      );
+                    })}
+                  </Table>
+                </Card>
               )}
-            </Card>
+            </div>
           )}
 
           {tab === "approvals" && (
@@ -444,6 +494,40 @@ export default function TeamLeadDashboard() {
             )}
           </Field>
         </form>
+      </Modal>
+
+      {/* Team Members List Modal */}
+      <Modal
+        open={modal === "members"}
+        onClose={closeModal}
+        title="Team Members"
+        description={`${team?.name || "Department Details"} · ${members.length} active roles`}
+        footer={<Button onClick={closeModal}>Close</Button>}
+      >
+        <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+          {members.length === 0 ? (
+            <div className="text-center py-6 text-sm text-[var(--muted)]">No members in this department yet.</div>
+          ) : (
+            members.map((m) => (
+              <div key={m.id} className="flex items-center justify-between p-3.5 bg-[var(--surface-2)] border border-[var(--line)] rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[var(--brand-tint)] text-[var(--brand-bright)] font-bold grid place-items-center uppercase text-sm">
+                    {m.firstName?.[0] || ""}{m.lastName?.[0] || ""}
+                  </div>
+                  <div>
+                    <div className="t-small font-bold text-[var(--text)]">{m.firstName} {m.lastName}</div>
+                    <div className="t-caption text-[var(--muted)] mt-0.5">{m.email}</div>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <Badge tone="neutral">
+                    {m.userRole ? m.userRole.replace(/_/g, " ").toLowerCase() : "employee"}
+                  </Badge>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </Modal>
     </div>
   );

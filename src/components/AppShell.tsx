@@ -56,7 +56,6 @@ const navSections: Record<string, NavSection[]> = {
       items: [
         { label: "Budget", href: "/admin/budget", icon: TrendingUp },
         { label: "Transactions", href: "/admin/transactions", icon: History },
-        { label: "Onboarding Pipeline", href: "/admin/pipeline", icon: Users },
       ],
     },
   ],
@@ -77,7 +76,6 @@ const navSections: Record<string, NavSection[]> = {
       items: [
         { label: "My Tasks", href: "/employee/tasks", icon: CheckSquare },
         { label: "Time Tracking", href: "/employee/time-tracking", icon: Activity },
-        { label: "Team Feed", href: "/employee/feed", icon: Rss },
       ],
     },
     {
@@ -247,7 +245,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex flex-col w-72 bg-[var(--surface)] border-r border-[var(--line)] p-4 fixed h-full z-30">
         <div className="px-2 py-3 mb-2">
-          <Logo size={40} withWordmark subtitle={roleLabel} />
+          <Link href="/">
+            <Logo size={40} withWordmark subtitle={roleLabel} />
+          </Link>
         </div>
         <nav className="flex-1 overflow-y-auto scrollbar-none -mx-1 px-1">
           <NavList />
@@ -261,7 +261,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 lg:pl-72 flex flex-col min-h-screen">
         {/* Mobile Header */}
         <header className="lg:hidden flex items-center justify-between px-5 py-3.5 bg-[var(--surface)]/90 backdrop-blur border-b border-[var(--line)] sticky top-0 z-40">
-          <Logo size={34} withWordmark />
+          <Link href="/">
+            <Logo size={34} withWordmark />
+          </Link>
           <button
             onClick={() => setMobileMenuOpen((v) => !v)}
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
@@ -283,7 +285,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="px-2 py-2 mb-2">
-                <Logo size={36} withWordmark subtitle={roleLabel} />
+                <Link href="/">
+                  <Logo size={36} withWordmark subtitle={roleLabel} />
+                </Link>
               </div>
               <nav className="flex-1 overflow-y-auto scrollbar-none -mx-1 px-1">
                 <NavList dense />

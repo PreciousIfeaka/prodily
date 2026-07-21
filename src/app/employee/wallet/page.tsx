@@ -7,13 +7,14 @@ import {
   updateBankProfileAction,
   requestWithdrawalAction,
   redeemPointsAction,
+  resolveBankAccountAction,
+  getBillerProductsAction,
 } from "@/app/actions/wallet";
-import { Coins, Sparkles, Building, Send, CheckCircle2, AlertCircle } from "lucide-react";
+import { Sparkles, Building, Send, CheckCircle2, AlertCircle, Wallet } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import {
   PageHeader,
   Card,
-  StatCard,
   Button,
   Badge,
   Modal,
@@ -22,13 +23,14 @@ import {
   Select,
   ErrorState,
   SkeletonCard,
+  Spinner,
 } from "@/components/ui";
-
-// Single source of truth for the points→cash rate (was contradictory: "1pt=₦1" vs pts/10).
-const POINT_TO_NGN = 1;
 
 export default function EmployeeWalletPage() {
   const [wallet, setWallet] = useState<any>(null);
+  const POINT_TO_NGN = wallet?.user?.organization?.pointToAmountValue
+    ? Number(wallet.user.organization.pointToAmountValue)
+    : 1.00;
   const [banks, setBanks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -46,9 +48,16 @@ export default function EmployeeWalletPage() {
   const [redeemPointsVal, setRedeemPointsVal] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [provider, setProvider] = useState("MTN");
-  const [dataCode, setDataCode] = useState("1.5GB");
   const [redeemLoading, setRedeemLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [resolvedAccountName, setResolvedAccountName] = useState("");
+  const [resolvingAccount, setResolvingAccount] = useState(false);
+
+  const [bankSearch, setBankSearch] = useState("");
+  const [billerProducts, setBillerProducts] = useState<any[]>([]);
+  const [billerProductsLoading, setBillerProductsLoading] = useState(false);
+  const [selectedProductCode, setSelectedProductCode] = useState("");
+  const [airtimeAmount, setAirtimeAmount] = useState("");
 
   const { toast } = useToast();
 
@@ -71,9 +80,74 @@ export default function EmployeeWalletPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (bankCode && accountNumber && accountNumber.length === 10) {
+      setResolvingAccount(true);
+      setResolvedAccountName("");
+      setErrors((prev) => ({ ...prev, accountNumber: "" }));
+
+      const timer = setTimeout(async () => {
+        try {
+          const res = await resolveBankAccountAction(bankCode, accountNumber);
+          if (res.success && res.accountName) {
+            setResolvedAccountName(res.accountName);
+          } else {
+            setErrors((prev) => ({ ...prev, accountNumber: res.error || "Could not resolve account." }));
+          }
+        } catch {
+          setErrors((prev) => ({ ...prev, accountNumber: "Failed to connect for account verification." }));
+        } finally {
+          setResolvingAccount(false);
+        }
+      }, 600); // debounce API call
+
+      return () => clearTimeout(timer);
+    } else {
+      setResolvedAccountName("");
+    }
+  }, [bankCode, accountNumber]);
+
+  const loadBillerProducts = async (p: string) => {
+    setBillerProductsLoading(true);
+    try {
+      const res = await getBillerProductsAction(p);
+      console.log("loadBillerProducts res:", JSON.stringify(res, null, 2));
+      const items = res?.content || res?.data?.content || res || [];
+      console.log("extracted items:", JSON.stringify(items, null, 2));
+      setBillerProducts(items);
+
+      const dataPlans = items.filter((item: any) => {
+        const catCode = item.category?.code || (item.categories && item.categories[0]?.code);
+        return catCode === "DATA_BUNDLE" || catCode === "DATA";
+      });
+      if (dataPlans.length > 0) {
+        setSelectedProductCode(dataPlans[0].code);
+      } else {
+        setSelectedProductCode("");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBillerProductsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (modal === "redeem" && redemptionType !== "CASH") {
+      loadBillerProducts(provider);
+    }
+  }, [provider, redemptionType, modal]);
+
+  const filteredBanks = banks.filter((b) =>
+    b.name.toLowerCase().includes(bankSearch.toLowerCase())
+  );
+
   const closeModal = () => {
     setModal(null);
     setErrors({});
+    setResolvedAccountName("");
+    setBankSearch("");
+    setAirtimeAmount("");
   };
 
   const handleUpdateBankProfile = (e: React.FormEvent) => {
@@ -137,25 +211,69 @@ export default function EmployeeWalletPage() {
 
   const handleRedeemPoints = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!redeemPointsVal) {
-      setErrors({ redeem: "Enter the points to redeem." });
-      return;
+    setErrors({});
+    let amount = 0;
+
+    if (redemptionType === "CASH") {
+      amount = parseFloat(redeemPointsVal);
+      if (isNaN(amount) || amount <= 0) {
+        setErrors({ redeem: "Enter the points to redeem." });
+        return;
+      }
+      if (amount > ptsBalance) {
+        setErrors({ redeem: "Insufficient points balance." });
+        return;
+      }
+    } else if (redemptionType === "AIRTIME") {
+      const airNgn = parseFloat(airtimeAmount);
+      if (isNaN(airNgn) || airNgn <= 0) {
+        setErrors({ airtimeAmount: "Enter airtime amount in NGN." });
+        return;
+      }
+      amount = Math.ceil(airNgn / POINT_TO_NGN);
+      if (amount > ptsBalance) {
+        setErrors({ airtimeAmount: `Insufficient points. Requires ${amount} pts.` });
+        return;
+      }
+      if (!phoneNumber) {
+        setErrors({ phoneNumber: "Recipient phone number is required." });
+        return;
+      }
+    } else if (redemptionType === "INTERNET") {
+      const selectedPlan = billerProducts.find(p => p.code === selectedProductCode);
+      if (!selectedPlan) {
+        setErrors({ selectedProductCode: "Please select a data plan." });
+        return;
+      }
+      amount = Math.ceil(Number(selectedPlan.price) / POINT_TO_NGN);
+      if (amount > ptsBalance) {
+        setErrors({ selectedProductCode: `Insufficient points. Requires ${amount} pts.` });
+        return;
+      }
+      if (!phoneNumber) {
+        setErrors({ phoneNumber: "Recipient phone number is required." });
+        return;
+      }
     }
+
     setRedeemLoading(true);
     const formData = new FormData();
-    formData.append("amount", redeemPointsVal);
+    formData.append("amount", String(amount));
     formData.append("type", redemptionType);
     if (redemptionType !== "CASH") {
       formData.append("phoneNumber", phoneNumber);
       formData.append("provider", provider);
-      if (redemptionType === "INTERNET") formData.append("dataCode", dataCode);
+      if (redemptionType === "INTERNET") {
+        formData.append("dataCode", selectedProductCode);
+      }
     }
     startTransition(async () => {
       try {
         const res = await redeemPointsAction(null, formData);
         if (res.success) {
-          toast("Points redeemed.");
+          toast("Points redeemed successfully.");
           setRedeemPointsVal("");
+          setAirtimeAmount("");
           setPhoneNumber("");
           closeModal();
           loadData();
@@ -179,16 +297,6 @@ export default function EmployeeWalletPage() {
       <PageHeader
         title="Wallet & Payouts"
         subtitle="Convert points to cash, airtime, or data, and withdraw earnings to your bank."
-        action={
-          <>
-            <Button variant="secondary" onClick={() => setModal("redeem")} disabled={loading || ptsBalance < 10}>
-              Redeem points
-            </Button>
-            <Button onClick={() => setModal("withdraw")} disabled={loading || !hasBankProfile || cashBalance < 100}>
-              Withdraw
-            </Button>
-          </>
-        }
       />
 
       {loading ? (
@@ -201,18 +309,63 @@ export default function EmployeeWalletPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <StatCard
-              tone="brand"
-              icon={<Sparkles className="w-5 h-5" />}
-              label="Earned bonus points"
-              value={`${ptsBalance.toLocaleString()} pts`}
-              hint={`≈ ₦${(ptsBalance * POINT_TO_NGN).toLocaleString()} at 1 pt = ₦${POINT_TO_NGN}`}
-            />
-            <StatCard
-              icon={<Coins className="w-5 h-5" />}
-              label="Withdrawable cash"
-              value={`₦${cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-            />
+            {/* Premium landing-page-styled Reward Wallet card */}
+            <div
+              className="relative rounded-2xl p-6 overflow-hidden border border-white/10 text-white shadow-lg flex flex-col justify-between min-h-[170px]"
+              style={{ background: "linear-gradient(135deg, var(--brand), var(--brand-600))" }}
+            >
+              <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/20 blur-2xl pointer-events-none" />
+              <div>
+                <div className="flex items-center gap-2 mb-3 relative">
+                  <Wallet className="h-5 w-5 text-white" />
+                  <span className="text-sm font-semibold tracking-wide uppercase opacity-90">Reward Wallet</span>
+                </div>
+                <div className="relative">
+                  <div className="text-[11.5px] text-white/75">Available balance (Cash)</div>
+                  <div className="text-3xl font-bold tracking-tight mt-0.5">
+                    ₦{cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 relative z-10">
+                <button
+                  onClick={() => setModal("withdraw")}
+                  disabled={!hasBankProfile || cashBalance < 100}
+                  className="text-xs font-semibold rounded-xl bg-white/15 hover:bg-white/25 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 transition-colors cursor-pointer"
+                >
+                  Withdraw Cash
+                </button>
+              </div>
+            </div>
+
+            {/* Premium Points Balance card */}
+            <div className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-6 flex flex-col justify-between min-h-[170px]">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="h-5 w-5 text-[var(--brand-bright)]" />
+                  <span className="text-sm font-semibold text-[var(--muted)] tracking-wide uppercase">Bonus Points</span>
+                </div>
+                <div>
+                  <div className="text-[11.5px] text-[var(--muted)]">Total accumulated</div>
+                  <div className="text-3xl font-bold text-[var(--text)] tracking-tight mt-0.5">
+                    {ptsBalance.toLocaleString()} <span className="text-sm font-medium text-[var(--muted)]">pts</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
+                <span className="text-xs text-[var(--muted)]">
+                  ≈ <span className="font-semibold text-[var(--text)]">₦{(ptsBalance * POINT_TO_NGN).toLocaleString()}</span> (1 pt = ₦{POINT_TO_NGN})
+                </span>
+                <Button
+                  size="sm"
+                  variant="subtle"
+                  onClick={() => setModal("redeem")}
+                  disabled={ptsBalance < 10}
+                >
+                  Redeem Points
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Payout account */}
@@ -228,8 +381,7 @@ export default function EmployeeWalletPage() {
                 <div className="mt-3">
                   {hasBankProfile ? (
                     <Badge tone="success">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Linked · {wallet.bankCode} ·{" "}
-                      {wallet.accountNumber}
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Linked · {wallet.bankName || wallet.bankCode} · {wallet.accountNumber} {wallet.accountName ? `· ${wallet.accountName}` : ""}
                     </Badge>
                   ) : (
                     <Badge tone="warning">
@@ -255,7 +407,7 @@ export default function EmployeeWalletPage() {
         footer={
           <>
             <Button variant="ghost" onClick={closeModal}>Cancel</Button>
-            <Button onClick={handleRedeemPoints} loading={redeemLoading} disabled={ptsBalance < 10}>
+            <Button onClick={handleRedeemPoints} loading={redeemLoading} disabled={ptsBalance < 1}>
               Exchange points
             </Button>
           </>
@@ -271,29 +423,43 @@ export default function EmployeeWalletPage() {
               </Select>
             )}
           </Field>
-          <Field
-            label="Points amount"
-            required
-            error={errors.redeem}
-            hint={`Available: ${ptsBalance.toLocaleString()} pts (≈ ₦${(ptsBalance * POINT_TO_NGN).toLocaleString()})`}
-          >
-            {({ id, invalid }) => (
-              <Input
-                id={id}
-                invalid={invalid}
-                type="number"
-                min="10"
-                placeholder="e.g. 500"
-                value={redeemPointsVal}
-                onChange={(e) => setRedeemPointsVal(e.target.value)}
-              />
-            )}
-          </Field>
+
+          {redemptionType === "CASH" && (
+            <Field
+              label="Points amount"
+              required
+              error={errors.redeem}
+              hint={`Available: ${ptsBalance.toLocaleString()} pts (≈ ₦${(ptsBalance * POINT_TO_NGN).toLocaleString()})`}
+            >
+              {({ id, invalid }) => (
+                <Input
+                  id={id}
+                  invalid={invalid}
+                  type="number"
+                  min="1"
+                  placeholder="e.g. 500"
+                  value={redeemPointsVal}
+                  onChange={(e) => setRedeemPointsVal(e.target.value)}
+                />
+              )}
+            </Field>
+          )}
+
           {redemptionType !== "CASH" && (
             <div className="space-y-4 animate-fade-in border-t border-[var(--line)] pt-4">
-              <Field label="Recipient mobile number" required>
-                {({ id }) => (
-                  <Input id={id} type="tel" placeholder="e.g. 08012345678" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+              <Field label="Recipient mobile number" required error={errors.phoneNumber}>
+                {({ id, invalid }) => (
+                  <Input
+                    id={id}
+                    invalid={invalid}
+                    type="tel"
+                    placeholder="e.g. 08012345678"
+                    value={phoneNumber}
+                    onChange={(e) => {
+                      setPhoneNumber(e.target.value);
+                      setErrors((prev) => ({ ...prev, phoneNumber: "" }));
+                    }}
+                  />
                 )}
               </Field>
               <Field label="Network provider">
@@ -306,17 +472,73 @@ export default function EmployeeWalletPage() {
                   </Select>
                 )}
               </Field>
+
+              {redemptionType === "AIRTIME" && (
+                <Field label="Airtime amount (NGN)" required error={errors.airtimeAmount}>
+                  {({ id, invalid }) => (
+                    <Input
+                      id={id}
+                      invalid={invalid}
+                      type="number"
+                      min="50"
+                      placeholder="e.g. 200"
+                      value={airtimeAmount}
+                      onChange={(e) => {
+                        setAirtimeAmount(e.target.value);
+                        setErrors((prev) => ({ ...prev, airtimeAmount: "" }));
+                      }}
+                    />
+                  )}
+                </Field>
+              )}
+
               {redemptionType === "INTERNET" && (
-                <Field label="Data package plan">
+                <Field label="Data package plan" error={errors.selectedProductCode}>
                   {({ id }) => (
-                    <Select id={id} value={dataCode} onChange={(e) => setDataCode(e.target.value)}>
-                      <option value="1.5GB">1.5 GB monthly plan</option>
-                      <option value="3GB">3 GB plan</option>
-                      <option value="10GB">10 GB power plan</option>
+                    <Select
+                      id={id}
+                      value={selectedProductCode}
+                      onChange={(e) => {
+                        setSelectedProductCode(e.target.value);
+                        setErrors((prev) => ({ ...prev, selectedProductCode: "" }));
+                      }}
+                      disabled={billerProductsLoading}
+                    >
+                      {billerProductsLoading ? (
+                        <option>Loading data plans...</option>
+                      ) : billerProducts.filter(item => {
+                          const catCode = item.category?.code || (item.categories && item.categories[0]?.code);
+                          return catCode === 'DATA_BUNDLE' || catCode === 'DATA';
+                        }).length === 0 ? (
+                        <option>No data plans available</option>
+                      ) : (
+                        billerProducts.filter(item => {
+                          const catCode = item.category?.code || (item.categories && item.categories[0]?.code);
+                          return catCode === 'DATA_BUNDLE' || catCode === 'DATA';
+                        }).map((p) => (
+                          <option key={p.code} value={p.code}>{p.name} - ₦{p.price}</option>
+                        ))
+                      )}
                     </Select>
                   )}
                 </Field>
               )}
+
+              {/* Dynamic Points Cost Calculation */}
+              <div className="bg-[var(--surface-2)] border border-[var(--line)] rounded-xl p-3 animate-fade-in mx-1">
+                <div className="text-[11px] text-[var(--muted)] font-semibold uppercase tracking-wider">Equivalent Points Cost</div>
+                <div className="text-sm font-bold text-[var(--text)] mt-0.5">
+                  {redemptionType === "AIRTIME" ? (
+                    `${airtimeAmount ? Math.ceil(Number(airtimeAmount) / POINT_TO_NGN) : 0} pts (≈ ₦${airtimeAmount || 0})`
+                  ) : (
+                    (() => {
+                      const selectedPlan = billerProducts.find(p => p.code === selectedProductCode);
+                      const price = selectedPlan ? Number(selectedPlan.price) : 0;
+                      return `${price ? Math.ceil(price / POINT_TO_NGN) : 0} pts (≈ ₦${price})`;
+                    })()
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </form>
@@ -387,11 +609,22 @@ export default function EmployeeWalletPage() {
         }
       >
         <form onSubmit={handleUpdateBankProfile} className="space-y-4">
+          <Field label="Search bank">
+            {({ id }) => (
+              <Input
+                id={id}
+                type="text"
+                placeholder="Type bank name to filter..."
+                value={bankSearch}
+                onChange={(e) => setBankSearch(e.target.value)}
+              />
+            )}
+          </Field>
           <Field label="Settlement bank" required error={errors.bankCode}>
             {({ id, invalid }) => (
               <Select id={id} invalid={invalid} value={bankCode} onChange={(e) => setBankCode(e.target.value)}>
                 <option value="" disabled>Select bank</option>
-                {banks.map((b) => (
+                {filteredBanks.map((b) => (
                   <option key={b.code} value={b.code}>{b.name}</option>
                 ))}
               </Select>
@@ -409,6 +642,17 @@ export default function EmployeeWalletPage() {
               />
             )}
           </Field>
+          {resolvingAccount && (
+            <div className="text-xs text-[var(--muted)] flex items-center gap-1.5 animate-pulse pl-1">
+              <Spinner size={12} /> Verifying account details...
+            </div>
+          )}
+          {resolvedAccountName && (
+            <div className="bg-[var(--surface-2)] border border-[var(--line)] rounded-xl p-3 animate-fade-in mx-1">
+              <div className="text-[11px] text-[var(--muted)] font-semibold uppercase tracking-wider">Account name</div>
+              <div className="text-sm font-bold text-[var(--text)] mt-0.5">{resolvedAccountName}</div>
+            </div>
+          )}
         </form>
       </Modal>
     </div>

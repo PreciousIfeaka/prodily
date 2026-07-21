@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, startTransition } from "react";
+import { useState, startTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signInAction } from "@/app/actions/auth";
+import { signInAction, getMeAction } from "@/app/actions/auth";
 import { useToast } from "@/components/Toast";
 import { LogIn, Mail, Lock, ShieldAlert, Eye, EyeOff } from "lucide-react";
 import { getRoleHome } from "@/lib/roles";
@@ -15,8 +15,21 @@ export default function SignInPage() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
   const { celebrate } = useToast();
+
+  useEffect(() => {
+    getMeAction().then((me) => {
+      if (me && me.userRole) {
+        router.push(getRoleHome(me.userRole));
+      } else {
+        setCheckingAuth(false);
+      }
+    }).catch(() => {
+      setCheckingAuth(false);
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +62,14 @@ export default function SignInPage() {
       }
     });
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center relative z-10">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--brand-bright)]" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center py-12 px-4 relative z-10">

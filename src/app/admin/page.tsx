@@ -2,7 +2,7 @@
 
 import { useEffect, useState, startTransition } from "react";
 import { getMeAction, getOrgWalletAction } from "@/app/actions/auth";
-import { getTeamsAction, deleteTeamAction } from "@/app/actions/onboarding";
+import { getTeamsAction, deleteTeamAction, updateOrgSettingsAction } from "@/app/actions/onboarding";
 import {
   listTeamWalletsAction,
   getRewardRequestsAction,
@@ -22,6 +22,7 @@ import {
   Eye,
   Edit,
   Trash2,
+  Settings,
 } from "lucide-react";
 import {
   PageHeader,
@@ -37,6 +38,9 @@ import {
   ErrorState,
   ConfirmDialog,
   SkeletonCard,
+  Modal,
+  Field,
+  Input,
 } from "@/components/ui";
 import CreateTeamModal from "./_components/CreateTeamModal";
 import InviteEmployeeModal from "./_components/InviteEmployeeModal";
@@ -58,10 +62,12 @@ export default function AdminDashboard() {
   const [error, setError] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
-  const [modal, setModal] = useState<null | "team" | "invite" | "fund" | "support">(null);
+  const [modal, setModal] = useState<null | "team" | "invite" | "fund" | "support" | "settings">(null);
   const [viewTeam, setViewTeam] = useState<Team | null>(null);
   const [editTeam, setEditTeam] = useState<Team | null>(null);
   const [deleteTeamId, setDeleteTeamId] = useState<string | null>(null);
+  const [pointToAmountVal, setPointToAmountVal] = useState("1.00");
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
   const { toast } = useToast();
 
@@ -75,6 +81,9 @@ export default function AdminDashboard() {
         return;
       }
       setAdminUser(me);
+      if (me.organization?.pointToAmountValue !== undefined) {
+        setPointToAmountVal(String(me.organization.pointToAmountValue));
+      }
       const [teamsResult, wallet, walletList, requestsResult] = await Promise.all([
         getTeamsAction(),
         getOrgWalletAction(me.organizationId),
@@ -142,6 +151,32 @@ export default function AdminDashboard() {
     });
   };
 
+  const handleUpdateSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(pointToAmountVal);
+    if (isNaN(val) || val <= 0) {
+      toast("Please enter a valid points conversion rate.");
+      return;
+    }
+    setSettingsLoading(true);
+    startTransition(async () => {
+      try {
+        const res = await updateOrgSettingsAction(val);
+        if (res.success) {
+          toast("Settings updated successfully.");
+          setModal(null);
+          loadData();
+        } else {
+          toast(res.error || "Failed to update settings.");
+        }
+      } catch {
+        toast("Connection error.");
+      } finally {
+        setSettingsLoading(false);
+      }
+    });
+  };
+
   const balance = orgWallet ? Number(orgWallet.balance ?? 0) : 0;
 
   return (
@@ -151,6 +186,9 @@ export default function AdminDashboard() {
         subtitle="Manage teams, funding, and approvals for your organization."
         action={
           <>
+            <Button variant="secondary" onClick={() => setModal("settings")} icon={<Settings className="w-[18px] h-[18px]" />}>
+              Settings
+            </Button>
             <Button variant="secondary" onClick={() => setModal("invite")} icon={<Send className="w-[18px] h-[18px]" />}>
               Invite
             </Button>
@@ -224,34 +262,52 @@ export default function AdminDashboard() {
                   </Button>
                 }
               />
-            ) : (
+             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {teams.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between p-3.5 bg-[var(--surface-2)] rounded-[var(--r)] border border-[var(--line)]"
-                  >
-                    <button
-                      onClick={() => setViewTeam(t)}
-                      className="flex items-center gap-3 min-w-0 text-left cursor-pointer group"
+                {teams.map((t) => {
+                  const walletObj = teamWallets.find((w) => w.teamId === t.id || w.team?.id === t.id);
+                  const budget = walletObj ? Number(walletObj.balance) : 0;
+                  const escrow = walletObj ? Number(walletObj.heldBalance) : 0;
+                  
+                  return (
+                    <div
+                      key={t.id}
+                      className="flex items-center justify-between p-3.5 bg-[var(--surface-2)] rounded-[var(--r)] border border-[var(--line)]"
                     >
-                      <span className="w-9 h-9 rounded-[var(--r-sm)] bg-[var(--brand-tint)] grid place-items-center text-[var(--brand-bright)] shrink-0">
-                        <Building className="w-4 h-4" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="t-small font-medium text-[var(--text)] group-hover:text-[var(--brand-bright)] transition-colors block truncate">
-                          {t.name}
+                      <button
+                        onClick={() => setViewTeam(t)}
+                        className="flex items-center gap-3 min-w-0 text-left cursor-pointer group"
+                      >
+                        <span className="w-9 h-9 rounded-[var(--r-sm)] bg-[var(--brand-tint)] grid place-items-center text-[var(--brand-bright)] shrink-0">
+                          <Building className="w-4 h-4" />
                         </span>
-                        {t.description && (
-                          <span className="t-caption text-[var(--muted)] block truncate">{t.description}</span>
-                        )}
-                      </span>
-                    </button>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <IconButton aria-label="View team" onClick={() => setViewTeam(t)}>
-                        <Eye className="w-4 h-4" />
-                      </IconButton>
-                      <IconButton aria-label="Edit team" onClick={() => setEditTeam(t)}>
+                        <span className="min-w-0">
+                          <span className="t-small font-medium text-[var(--text)] group-hover:text-[var(--brand-bright)] transition-colors block truncate">
+                            {t.name}
+                          </span>
+                          {t.description && (
+                            <span className="t-caption text-[var(--muted)] block truncate mb-1">{t.description}</span>
+                          )}
+                          <span className="flex flex-wrap gap-2 mt-1">
+                            <span className="t-micro text-[var(--muted)] bg-[var(--surface-3)] px-1.5 py-0.5 rounded">
+                              Budget: ₦{budget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
+                            <span className="t-micro text-[var(--muted)] bg-[var(--surface-3)] px-1.5 py-0.5 rounded">
+                              Escrow: ₦{escrow.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
+                            {escrow > budget && (
+                              <span className="t-micro font-medium text-[var(--rose)] bg-[var(--rose-tint)] px-1.5 py-0.5 rounded animate-pulse">
+                                ⚠️ Escrow exceeds budget!
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <IconButton aria-label="View team" onClick={() => setViewTeam(t)}>
+                          <Eye className="w-4 h-4" />
+                        </IconButton>
+                        <IconButton aria-label="Edit team" onClick={() => setEditTeam(t)}>
                         <Edit className="w-4 h-4" />
                       </IconButton>
                       <IconButton aria-label="Delete team" onClick={() => setDeleteTeamId(t.id)}>
@@ -259,7 +315,8 @@ export default function AdminDashboard() {
                       </IconButton>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>
@@ -296,6 +353,40 @@ export default function AdminDashboard() {
         description="This permanently removes the team and its wallet association. This can't be undone."
         confirmLabel="Delete team"
       />
+
+      {/* Settings Modal */}
+      <Modal
+        open={modal === "settings"}
+        onClose={() => setModal(null)}
+        title="Organization Settings"
+        description="Configure organization preferences and reward points conversion rates."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setModal(null)}>Cancel</Button>
+            <Button onClick={handleUpdateSettings} loading={settingsLoading}>Save settings</Button>
+          </>
+        }
+      >
+        <form onSubmit={handleUpdateSettings} className="space-y-4">
+          <Field
+            label="Points conversion value (NGN)"
+            required
+            hint={`Determines how much 1 reward point is worth in NGN when redeemed. Currently 1 pt = ₦${pointToAmountVal}`}
+          >
+            {({ id }) => (
+              <Input
+                id={id}
+                type="number"
+                step="0.0001"
+                min="0.0001"
+                placeholder="e.g. 1.00"
+                value={pointToAmountVal}
+                onChange={(e) => setPointToAmountVal(e.target.value)}
+              />
+            )}
+          </Field>
+        </form>
+      </Modal>
     </div>
   );
 }

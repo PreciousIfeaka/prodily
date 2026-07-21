@@ -116,6 +116,34 @@ export async function listBanksAction() {
   }
 }
 
+export async function resolveBankAccountAction(bankCode: string, accountNumber: string) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("session_token")?.value;
+
+  if (!token) {
+    return { success: false, error: "Unauthorized." };
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/wallet/bank/resolve?bankCode=${bankCode}&accountNumber=${accountNumber}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      return { success: false, error: result.message || "Failed to resolve bank account." };
+    }
+
+    return { success: true, accountName: result.accountName };
+  } catch (error) {
+    console.error("Resolve bank account error:", error);
+    return { success: false, error: "Failed to connect to backend server." };
+  }
+}
+
 export async function requestWithdrawalAction(prevState: any, formData: FormData) {
   const cookieStore = await cookies();
   const token = cookieStore.get("session_token")?.value;
@@ -650,10 +678,31 @@ export async function listWorkflowRulesAction() {
       headers: { Authorization: `Bearer ${token}` }
     });
     const result = await response.json();
+    console.log("listWorkflowRulesAction result:", JSON.stringify(result, null, 2));
     if (!response.ok) return [];
     return result.rules || result.data || result || [];
   } catch (err) {
     console.error("List workflow rules error:", err);
     return [];
+  }
+}
+
+export async function getBillerProductsAction(billerCode: string) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("session_token")?.value;
+  if (!token) return null;
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/wallet/biller-products?billerCode=${billerCode}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const result = await response.json();
+    console.log("getBillerProductsAction result:", JSON.stringify(result, null, 2));
+    if (!response.ok) return null;
+    return result.data || result || null;
+  } catch (err) {
+    console.error("Get biller products error:", err);
+    return null;
   }
 }

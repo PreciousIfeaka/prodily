@@ -149,7 +149,11 @@ export async function getTeamDetailsAction(teamId: string) {
 
     const result = await response.json();
     if (!response.ok) return { success: false, error: result.message || "Failed to fetch team details." };
-    return { success: true, team: result.data || result };
+    const team = result.data || result;
+    if (team) {
+      team.users = team.teamMembers || team.users || [];
+    }
+    return { success: true, team };
   } catch (e) {
     console.error(e);
     return { success: false, error: "Connection error" };
@@ -234,6 +238,30 @@ export async function addTeamMemberAction(prevState: any, formData: FormData) {
     const result = await response.json();
     if (!response.ok) return { success: false, error: result.message || "Failed to add member to team." };
     return { success: true, team: result.data || result };
+  } catch (e) {
+    console.error(e);
+    return { success: false, error: "Connection error" };
+  }
+}
+
+export async function updateOrgSettingsAction(pointToAmountValue: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("session_token")?.value;
+  if (!token) return { success: false, error: "Unauthorized" };
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/onboarding/organization/settings`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ pointToAmountValue }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) return { success: false, error: result.message || "Failed to update organization settings." };
+    return { success: true, organization: result.organization || result };
   } catch (e) {
     console.error(e);
     return { success: false, error: "Connection error" };

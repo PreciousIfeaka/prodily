@@ -236,6 +236,9 @@ export async function getActiveSessionAction() {
     });
     const result = await response.json();
     if (!response.ok) return null;
+    if (result && (result.data === null || result.session === null)) {
+      return null;
+    }
     return result.session || result.data || result || null;
   } catch (err) {
     console.error("Get active session error:", err);

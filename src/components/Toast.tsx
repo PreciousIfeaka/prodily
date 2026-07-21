@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useCallback, useContext, useRef, useState } from "react";
-import confetti from "canvas-confetti";
 import { Sparkle } from "lucide-react";
 
 type ToastContextType = {
@@ -30,13 +29,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const celebrate = useCallback(
     (m: string) => {
       toast(m);
-      confetti({
-        particleCount: 90,
-        spread: 75,
-        startVelocity: 45,
-        origin: { y: 0.6 },
-        colors: ["#55d396", "#169a50", "#f4c550", "#ffffff", "#12833f"],
-      });
     },
     [toast]
   );
