@@ -8,7 +8,7 @@ export default function Stepper({
   className,
 }: {
   steps: string[];
-  current: number; // 0-based index of the active step
+  current: number;
   className?: string;
 }) {
   return (

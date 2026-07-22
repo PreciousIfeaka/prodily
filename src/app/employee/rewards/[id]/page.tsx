@@ -7,11 +7,13 @@ import { rewards } from "@/lib/data";
 import Icon from "@/components/ui/Icon";
 import { useEmployee } from "@/components/EmployeeContext";
 import { Card, Button, Badge } from "@/components/ui";
+import { useToast } from "@/components/Toast";
 
 export default function RewardDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { points, redeem } = useEmployee();
+  const { toast } = useToast();
   const reward = rewards.find((r) => r.id === id) ?? rewards[0];
   const canAfford = points >= reward.cost;
 
@@ -61,14 +63,27 @@ export default function RewardDetailPage({ params }: { params: Promise<{ id: str
                 {reward.cost} pts
               </div>
             </div>
-            <Button
-              onClick={() => {
-                if (redeem(reward)) router.push("/employee/rewards");
-              }}
-              disabled={!canAfford}
-            >
-              {canAfford ? "Redeem now" : "Not enough points"}
-            </Button>
+            {reward.isRedeemable ? (
+              <Button
+                onClick={() => {
+                  if (reward.redirectTo) {
+                    router.push(reward.redirectTo);
+                  }
+                }}
+                disabled={!canAfford}
+              >
+                {canAfford ? "Redeem now" : "Not enough points"}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => {
+                  toast("Coming soon! Only airtime and data rewards are currently redeemable.");
+                }}
+                variant="secondary"
+              >
+                Coming soon
+              </Button>
+            )}
           </div>
         </div>
       </Card>

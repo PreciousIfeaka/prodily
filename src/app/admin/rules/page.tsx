@@ -26,7 +26,6 @@ export default function RulesPage() {
   const [showForm, setShowForm] = useState(false);
   const { toast } = useToast();
 
-  // Form State
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("SPRINT_COMPLETION");
@@ -84,10 +83,9 @@ export default function RulesPage() {
     fd.append("rewardPoints", rewardPoints);
     fd.append("totalBudget", totalBudget);
     
-    // Default start/end dates
     const start = new Date();
     const end = new Date();
-    end.setDate(end.getDate() + 30); // 30 days duration
+    end.setDate(end.getDate() + 30);
     fd.append("startDate", start.toISOString());
     fd.append("endDate", end.toISOString());
 

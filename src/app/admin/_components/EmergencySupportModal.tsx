@@ -27,7 +27,6 @@ export default function EmergencySupportModal({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Build a recipient picker by aggregating members across teams (no list-users endpoint exists).
   useEffect(() => {
     if (!open) return;
     let cancelled = false;

@@ -119,7 +119,6 @@ export default function ChallengesPage() {
       try {
         const res = await claimAttendanceRewardAction(id);
         if (res.success) {
-          // Earning a payout is a genuinely meaningful moment.
           celebrate("Reward points claimed and added to your wallet!");
           loadData();
         } else {

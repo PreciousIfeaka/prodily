@@ -73,7 +73,6 @@ export async function getMyTasksAction() {
     if (!response.ok) return [];
 
     const data = result.data || result;
-    // NestJS return could be paginated format or array
     return Array.isArray(data) ? data : data.items || data.data || [];
   } catch (error) {
     console.error("Get my tasks error:", error);

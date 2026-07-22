@@ -57,7 +57,6 @@ export default function TeamLeadDashboard() {
   const [supportLoading, setSupportLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // Unified reject modal for both task reviews and support requests.
   const [reject, setReject] = useState<{ type: "task" | "request"; id: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");

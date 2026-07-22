@@ -28,7 +28,6 @@ export async function signInAction(prevState: any, formData: FormData) {
 
     const body = result.data || result;
 
-    // Detect if user is an unverified admin and an OTP resend was triggered
     if (body.message === "OTP resent successfully." || (!body.token && body.email)) {
       return { success: true, needsOtpVerification: true, email: body.email };
     }
@@ -41,11 +40,11 @@ export async function signInAction(prevState: any, formData: FormData) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     cookieStore.set("session_role", role.toLowerCase(), {
-      httpOnly: false, // Accessible by client components if needed
+      httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
@@ -323,5 +322,69 @@ export async function getOrgWalletAction(orgId: string) {
   } catch (error) {
     console.error("GetOrgWallet action error:", error);
     return null;
+  }
+}
+
+export async function forgotPasswordAction(email: string) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/onboarding/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      return { success: false, error: result.message || "Failed to trigger password reset." };
+    }
+    return { success: true, message: result.message };
+  } catch (error) {
+    console.error("Forgot password action error:", error);
+    return { success: false, error: "Failed to connect to authentication server." };
+  }
+}
+
+export async function resetPasswordAction(token: string, password: string) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/onboarding/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, password }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      return { success: false, error: result.message || "Failed to reset password." };
+    }
+    return { success: true, message: result.message };
+  } catch (error) {
+    console.error("Reset password action error:", error);
+    return { success: false, error: "Failed to connect to authentication server." };
+  }
+}
+
+export async function changePasswordAction(currentPassword: string, newPassword: string) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("session_token")?.value;
+  if (!token) return { success: false, error: "Unauthorized" };
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/onboarding/change-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      return { success: false, error: result.message || "Failed to change password." };
+    }
+    return { success: true, message: result.message };
+  } catch (error) {
+    console.error("Change password action error:", error);
+    return { success: false, error: "Failed to connect to authentication server." };
   }
 }

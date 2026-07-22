@@ -14,7 +14,7 @@ import {
 import {
   Trophy, Wallet, Gift, Zap, Target, TrendingUp, Users, Brain, ShieldCheck,
   BarChart3, Coffee, Bus, GraduationCap, Wifi, Star, ArrowRight, Menu, X,
-  Crown, Flame, Medal, Phone, Mail,
+  Crown, Flame, Medal, Phone, Mail, Sun, Moon,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
@@ -53,18 +53,43 @@ export default function Landing() {
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [isLight, setIsLight] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "light") {
+      document.documentElement.classList.add("light");
+      setIsLight(true);
+    } else {
+      document.documentElement.classList.remove("light");
+      setIsLight(false);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    if (document.documentElement.classList.contains("light")) {
+      document.documentElement.classList.remove("light");
+      localStorage.setItem("theme", "dark");
+      setIsLight(false);
+    } else {
+      document.documentElement.classList.add("light");
+      localStorage.setItem("theme", "light");
+      setIsLight(true);
+    }
+  };
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
   const links = ["Features", "Solutions"];
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        scrolled ? "backdrop-blur-xl bg-background/60 border-b border-white/5" : ""
-      }`}
+      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${scrolled ? "backdrop-blur-xl bg-background/60 border-b border-white/5" : ""
+        }`}
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
@@ -79,6 +104,13 @@ function Nav() {
         </ul>
         <div className="hidden md:flex items-center gap-3">
           <Link href="/signin" className="text-sm text-muted-foreground hover:text-foreground">Login</Link>
+          <button
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            className="p-2 text-muted-foreground hover:text-foreground transition cursor-pointer"
+          >
+            {isLight ? <Moon className="w-[18px] h-[18px]" /> : <Sun className="w-[18px] h-[18px] text-[var(--gold)]" />}
+          </button>
           <Button asChild className="rounded-full gradient-primary shadow-glow border-0 text-primary-foreground hover:opacity-90">
             <Link href="/signup">Get Started</Link>
           </Button>
@@ -99,8 +131,18 @@ function Nav() {
               {links.map((l) => (
                 <a key={l} href={`#${l.toLowerCase()}`} className="text-sm" onClick={() => setOpen(false)}>{l}</a>
               ))}
-              <Link href="/signin" className="text-sm">Login</Link>
-              <Button asChild className="rounded-full gradient-primary border-0 text-primary-foreground">
+              <div className="flex items-center justify-between border-t border-b border-white/5 py-2.5 my-1">
+                <span className="text-sm text-muted-foreground">Theme Mode</span>
+                <button
+                  onClick={toggleTheme}
+                  aria-label="Toggle theme"
+                  className="p-2 text-muted-foreground hover:text-foreground transition cursor-pointer"
+                >
+                  {isLight ? <Moon className="w-[18px] h-[18px]" /> : <Sun className="w-[18px] h-[18px] text-[var(--gold)]" />}
+                </button>
+              </div>
+              <Link href="/signin" className="text-sm" onClick={() => setOpen(false)}>Login</Link>
+              <Button asChild className="rounded-full gradient-primary border-0 text-primary-foreground" onClick={() => setOpen(false)}>
                 <Link href="/signup">Get Started</Link>
               </Button>
             </div>
@@ -119,30 +161,60 @@ function Hero() {
   const [contactOpen, setContactOpen] = useState(false);
 
   return (
-    <section ref={ref} className="relative pt-36 md:pt-44 pb-24 md:pb-32">
-      <div className="absolute inset-0 grid-bg" />
-      <div className="pointer-events-none absolute -top-40 left-1/2 h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-primary/25 blur-[140px]" />
+    <section ref={ref} className="relative pt-36 md:pt-44 pb-24 md:pb-32 overflow-hidden bg-black text-white">
+      {/* Decorative 3D Green Glass Backdrop */}
+      <img
+        src="/hero-bg.png"
+        alt=""
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "center",
+          mixBlendMode: "screen",
+          opacity: 0.9,
+          zIndex: 1,
+        }}
+        fetchPriority="high"
+        className="pointer-events-none select-none"
+      />
 
-      <div className="mx-auto max-w-7xl px-6 relative">
+      {/* Dark Gradient Overlay for Readability */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 2,
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.65) 60%, rgba(0,0,0,0.9) 100%)",
+        }}
+        className="pointer-events-none"
+      />
+
+      <div className="absolute inset-0 grid-bg opacity-30 z-2" />
+      <div className="pointer-events-none absolute -top-40 left-1/2 h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-primary/25 blur-[140px] z-2" />
+
+      <div className="mx-auto max-w-7xl px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mx-auto max-w-3xl text-center"
+          className="mx-auto max-w-3xl text-center relative z-10"
         >
-          <h1 className="mt-6 text-5xl md:text-7xl leading-[1.02] tracking-tight font-medium">
+          <h1 className="mt-6 text-5xl md:text-7xl leading-[1.02] tracking-tight font-medium text-white">
             Build a workplace where{" "}
             <span className="italic font-display gradient-text">great work</span>
             <br className="hidden md:block" /> never goes unnoticed.
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-base md:text-lg text-muted-foreground leading-relaxed text-balance">
+          <p className="mx-auto mt-6 max-w-xl text-base md:text-lg text-zinc-400 leading-relaxed text-balance">
             From a successful launch to the employee who quietly delivers every week, Prodily helps you recognize achievements, reward people instantly, and build a culture they genuinely enjoy.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button asChild size="lg" className="rounded-full gradient-primary border-0 shadow-glow text-primary-foreground hover:opacity-90 h-12 px-6">
               <Link href="/signup">Get Started <ArrowRight className="ml-1 h-4 w-4" /></Link>
             </Button>
-            <Button size="lg" variant="ghost" onClick={() => setContactOpen(true)} className="rounded-full h-12 px-6 glass hover:bg-white/10">
+            <Button size="lg" variant="ghost" onClick={() => setContactOpen(true)} className="rounded-full h-12 px-6 glass hover:bg-white/10 text-white border-white/10 hover:text-white">
               <Phone className="mr-2 h-4 w-4" /> Contact Support
             </Button>
           </div>
@@ -274,8 +346,8 @@ function Leaderboard() {
   }, []);
   const medalColor = (m?: string) =>
     m === "gold" ? "bg-gradient-to-br from-gold to-amber-500 text-black" :
-    m === "silver" ? "bg-white/20 text-white" :
-    m === "bronze" ? "bg-amber-800/60 text-white" : "bg-white/5 text-muted-foreground";
+      m === "silver" ? "bg-white/20 text-white" :
+        m === "bronze" ? "bg-amber-800/60 text-white" : "bg-white/5 text-muted-foreground";
   return (
     <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4">
       <div className="flex items-center justify-between mb-3">
@@ -362,8 +434,8 @@ function RecognitionFeed() {
 function BadgePill({ children, tone = "primary" }: { children: React.ReactNode; tone?: "primary" | "gold" | "emerald" }) {
   const cls =
     tone === "gold" ? "bg-gold/15 text-gold border-gold/30" :
-    tone === "emerald" ? "bg-emerald-reward/15 text-emerald-reward border-emerald-reward/30" :
-    "bg-primary/15 text-violet-soft border-primary/30";
+      tone === "emerald" ? "bg-emerald-reward/15 text-emerald-reward border-emerald-reward/30" :
+        "bg-primary/15 text-violet-soft border-primary/30";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${cls}`}>
       <Star className="h-2.5 w-2.5" /> {children}
@@ -424,7 +496,7 @@ const row2Brands = [
   { name: "MTN", code: "MTN", color: "#facc15", textDark: true },
   { name: "Airtel", code: "AT", color: "#ef4444" },
   { name: "Glo", code: "GO", color: "#22c55e" },
-  { isMonnify: true }, // Special Monnify card
+  { isMonnify: true },
   { name: "9mobile", code: "9M", color: "#15803d" },
   { name: "Jumia", code: "JM", color: "#f97316" },
   { name: "Konga", code: "KG", color: "#ec4899" },
@@ -996,7 +1068,6 @@ function FinalCTA() {
           style={{
             background:
               "radial-gradient(600px 300px at var(--x) var(--y), rgba(85,211,150,0.35), transparent 60%), linear-gradient(135deg, var(--brand-600), #06180f)",
-            // @ts-expect-error css custom properties from motion values
             "--x": gx,
             "--y": gy,
           }}

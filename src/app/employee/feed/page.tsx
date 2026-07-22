@@ -24,7 +24,6 @@ export default function FeedPage() {
       setUser(me);
 
       if (txResult.success && txResult.transactions) {
-        // Map transactions to social feed posts
         const mapped = txResult.transactions.map((tx: any) => {
           const isCredit = tx.type === "CREDIT";
           let message = "";
@@ -53,14 +52,13 @@ export default function FeedPage() {
               title: tx.purpose.replace(/_/g, " "),
               subtitle: isCredit ? `Received ₦${Number(tx.amount).toLocaleString()}` : `Paid ₦${Number(tx.amount).toLocaleString()}`,
             },
-            likes: Math.floor(Math.random() * 5), // dynamic visual flavor
+            likes: Math.floor(Math.random() * 5),
             comments: 0,
           };
         });
         
         setPosts(mapped);
         
-        // Initialize likes state
         const initialLikes: Record<string, number> = {};
         mapped.forEach((p) => {
           initialLikes[p.id] = p.likes;

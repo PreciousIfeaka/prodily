@@ -87,15 +87,10 @@ export async function inviteUserAction(prevState: any, formData: FormData) {
       return { success: false, error: result.message || "Failed to generate invite." };
     }
 
-    // In a real application, the backend generates a link to its own endpoint:
-    // "http://127.0.0.1:3001/api/v1/onboarding/register?token=..."
-    // But since the frontend serves the registration page, we will transform this link
-    // to point to the frontend registration page (e.g. "http://localhost:3000/register?token=...")!
     const inviteData = result.data || result;
     const backendInviteLink = inviteData.inviteLink;
     const tokenParam = inviteData.token;
 
-    // Use absolute URL pointing to frontend (localhost:3000 by default)
     const frontendInviteLink = `/register?token=${tokenParam}`;
 
     return {

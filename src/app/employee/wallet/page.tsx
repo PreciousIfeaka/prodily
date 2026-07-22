@@ -80,6 +80,20 @@ export default function EmployeeWalletPage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const modalParam = params.get("modal");
+      const typeParam = params.get("type");
+      if (modalParam === "redeem") {
+        setModal("redeem");
+        if (typeParam === "AIRTIME" || typeParam === "INTERNET") {
+          setRedemptionType(typeParam);
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (bankCode && accountNumber && accountNumber.length === 10) {
       setResolvingAccount(true);
       setResolvedAccountName("");
@@ -187,7 +201,6 @@ export default function EmployeeWalletPage() {
       try {
         const res = await requestWithdrawalAction(null, formData);
         if (res.success) {
-          // Payout is a genuinely meaningful moment → celebrate.
           toast(`Withdrawal of ₦${Number(withdrawAmount).toLocaleString()} submitted.`);
           setWithdrawAmount("");
           closeModal();

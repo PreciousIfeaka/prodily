@@ -48,7 +48,6 @@ export default function EmployeeDashboard() {
     setLoading(true);
     setError(false);
     try {
-      // Fire all requests in parallel; a single slow call no longer gates the page.
       const [me, w, chRes, txRes, sess] = await Promise.all([
         getMeAction(),
         getWalletAction(),

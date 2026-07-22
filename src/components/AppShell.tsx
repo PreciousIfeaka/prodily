@@ -3,7 +3,7 @@
 import { useEffect, useState, startTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getMeAction, signOutAction } from "@/app/actions/auth";
+import { getMeAction, signOutAction, changePasswordAction } from "@/app/actions/auth";
 import {
   LayoutDashboard,
   Building,
@@ -25,12 +25,14 @@ import {
   BadgeCheck,
   Sun,
   Moon,
+  Key,
+  Lock,
 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import TopNav from "@/components/TopNav";
-import { Logo, Avatar, Spinner, IconButton } from "@/components/ui";
+import { Logo, Avatar, Spinner, IconButton, Modal, Button, Input, Field } from "@/components/ui";
 
-const publicPaths = ["/signin", "/signup", "/register"];
+const publicPaths = ["/signin", "/signup", "/register", "/forgot-password", "/reset-password"];
 
 type NavItem = { label: string; href: string; icon: any; exact?: boolean };
 type NavSection = { title?: string; items: NavItem[] };
@@ -118,6 +120,45 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLight, setIsLight] = useState(false);
 
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState("");
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmNewPassword) {
+      setChangePasswordError("New passwords do not match.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setChangePasswordError("New password must be at least 6 characters long.");
+      return;
+    }
+
+    setChangePasswordError("");
+    setChangePasswordLoading(true);
+
+    try {
+      const res = await changePasswordAction(currentPassword, newPassword);
+      if (res.success) {
+        toast("Password changed successfully.");
+        setIsChangePasswordOpen(false);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmNewPassword("");
+      } else {
+        setChangePasswordError(res.error || "Failed to change password.");
+      }
+    } catch {
+      setChangePasswordError("An unexpected error occurred.");
+    } finally {
+      setChangePasswordLoading(false);
+    }
+  };
+
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "light") {
@@ -142,7 +183,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   const isPublicPath = publicPaths.some((p) => pathname.startsWith(p));
-  // Marketing routes render full-bleed with no dashboard chrome and no auth fetch.
   const isMarketing =
     pathname === "/" || pathname.startsWith("/privacy") || pathname.startsWith("/terms");
 
@@ -169,7 +209,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     fetchUser();
   }, [pathname, isPublicPath, isMarketing, router]);
 
-  // Close the mobile menu whenever the route changes.
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
@@ -184,16 +223,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // Marketing routes render their own nav/footer — no dashboard chrome.
   if (isMarketing) {
     return (
       <>
-        {/* Floating Theme Toggle for Marketing Pages */}
-        <div className="fixed top-6 right-8 z-50">
-          <IconButton onClick={toggleTheme} aria-label="Toggle theme" title="Toggle theme">
-            {isLight ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-[var(--gold)]" />}
-          </IconButton>
-        </div>
+        {/* Floating Theme Toggle for non-home marketing pages (privacy, terms, etc.) */}
+        {pathname !== "/" && (
+          <div className="fixed top-6 right-8 z-50">
+            <IconButton onClick={toggleTheme} aria-label="Toggle theme" title="Toggle theme">
+              {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4 text-[var(--gold)]" />}
+            </IconButton>
+          </div>
+        )}
         {children}
       </>
     );
@@ -221,7 +261,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!user) return null;
 
-  const role = user.userRole as string; // "ADMIN" | "TEAM_LEAD" | "TEAM_MEMBER"
+  const role = user.userRole as string;
   const sections = navSections[role] || [];
   const fullName =
     [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || "Account";
@@ -244,11 +284,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[var(--r)] t-small font-medium transition-all ${
-                  active
-                    ? "bg-[var(--brand-tint)] text-[var(--brand-bright)]"
-                    : "text-[var(--muted)] hover:bg-[var(--surface-3)] hover:text-[var(--text)]"
-                }`}
+                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[var(--r)] t-small font-medium transition-all ${active
+                  ? "bg-[var(--brand-tint)] text-[var(--brand-bright)]"
+                  : "text-[var(--muted)] hover:bg-[var(--surface-3)] hover:text-[var(--text)]"
+                  }`}
               >
                 {active && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-[var(--brand-bright)]" />
@@ -270,6 +309,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="t-small font-medium text-[var(--text)] truncate">{fullName}</div>
         <div className="t-caption text-[var(--muted)] truncate">{user.email}</div>
       </div>
+      <IconButton onClick={() => setIsChangePasswordOpen(true)} aria-label="Change password" title="Change password">
+        <Key className="w-4 h-4 text-[var(--muted)] hover:text-[var(--text)]" />
+      </IconButton>
       <IconButton onClick={handleLogout} aria-label="Sign out" title="Sign out">
         <LogOut className="w-4 h-4" />
       </IconButton>
@@ -352,6 +394,81 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* Change Password Modal */}
+      <Modal
+        open={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+        title="Change Password"
+        description="Update your account password."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setIsChangePasswordOpen(false)}>Cancel</Button>
+            <Button onClick={handleChangePassword} loading={changePasswordLoading}>
+              Update password
+            </Button>
+          </>
+        }
+      >
+        <form onSubmit={handleChangePassword} className="space-y-4">
+          {changePasswordError && (
+            <div className="p-3 bg-destructive/15 border border-destructive/20 text-destructive text-xs rounded-lg">
+              {changePasswordError}
+            </div>
+          )}
+
+          <Field label="Current Password" required>
+            {({ id }) => (
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--faint)] pointer-events-none" />
+                <Input
+                  id={id}
+                  type="password"
+                  required
+                  placeholder="••••••••••••"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="pl-11"
+                />
+              </div>
+            )}
+          </Field>
+
+          <Field label="New Password" required>
+            {({ id }) => (
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--faint)] pointer-events-none" />
+                <Input
+                  id={id}
+                  type="password"
+                  required
+                  placeholder="••••••••••••"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="pl-11"
+                />
+              </div>
+            )}
+          </Field>
+
+          <Field label="Confirm New Password" required>
+            {({ id }) => (
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--faint)] pointer-events-none" />
+                <Input
+                  id={id}
+                  type="password"
+                  required
+                  placeholder="••••••••••••"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  className="pl-11"
+                />
+              </div>
+            )}
+          </Field>
+        </form>
+      </Modal>
     </div>
   );
 }

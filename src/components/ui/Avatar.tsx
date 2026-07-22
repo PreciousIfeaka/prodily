@@ -6,7 +6,6 @@ function initials(name?: string) {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
 }
 
-// Deterministic green-family tint per name so avatars stay on-brand.
 const tints = [
   "var(--brand)",
   "var(--brand-600)",
@@ -34,7 +33,6 @@ export default function Avatar({
   className?: string;
 }) {
   if (src) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
       <img
         src={src}

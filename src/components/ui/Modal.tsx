@@ -25,7 +25,6 @@ export default function Modal({
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
 
-  // Keep onCloseRef updated with the latest onClose function
   useEffect(() => {
     onCloseRef.current = onClose;
   });
@@ -38,7 +37,6 @@ export default function Modal({
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    // focus the panel only once when opened
     panelRef.current?.focus();
     return () => {
       document.removeEventListener("keydown", onKey);

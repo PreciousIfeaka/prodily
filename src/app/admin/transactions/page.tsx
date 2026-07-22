@@ -58,7 +58,6 @@ export default function AdminTransactionsPage() {
 
   useEffect(() => {
     loadTransactions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {

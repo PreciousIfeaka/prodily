@@ -1,7 +1,3 @@
-// Stand-in for a real auth/session layer. In a real app this would come
-// from your auth provider (e.g. a JWT claim or session lookup), not a
-// hardcoded constant. Flip the role here to preview each experience —
-// each role only ever sees its own part of the app.
 export const session: { role: "employee" | "admin" } = {
   role: "admin",
 };
@@ -34,9 +30,39 @@ export type Reward = {
   gradient: string;
   icon: string;
   description: string;
+  isRedeemable?: boolean;
+  redirectTo?: string;
 };
 
 export const rewards: Reward[] = [
+  {
+    id: "airtime-card",
+    name: "Mobile Airtime",
+    vendor: "MTN, Airtel, Glo, 9mobile",
+    priceLabel: "Flexible amount",
+    cost: 10,
+    category: "Transport",
+    tag: "Instant Vending",
+    gradient: "linear-gradient(140deg,#0ea5e9,#0284c7)",
+    icon: "phone",
+    description: "Recharge your phone line with mobile airtime instantly across MTN, Airtel, Glo, and 9mobile networks.",
+    isRedeemable: true,
+    redirectTo: "/employee/wallet?modal=redeem&type=AIRTIME"
+  },
+  {
+    id: "data-card",
+    name: "Mobile Data Bundle",
+    vendor: "MTN, Airtel, Glo, 9mobile",
+    priceLabel: "Flexible plans",
+    cost: 50,
+    category: "Learning",
+    tag: "Instant Vending",
+    gradient: "linear-gradient(140deg,#8b5cf6,#6d28d9)",
+    icon: "wifi",
+    description: "Purchase high-speed internet data bundles directly to your phone number.",
+    isRedeemable: true,
+    redirectTo: "/employee/wallet?modal=redeem&type=INTERNET"
+  },
   {
     id: "lunch-voucher",
     name: "Lunch Voucher",
@@ -191,7 +217,6 @@ export const feedPosts = [
   },
 ];
 
-// ---------------- ADMIN DATA ----------------
 
 export const adminKpis = [
   { label: "Points issued", value: "482,300", delta: "+12.4%", tone: "mint" },
@@ -252,9 +277,6 @@ export type RewardRule = {
   icon: string;
   tint: "violet" | "gold" | "mint";
   enabled: boolean;
-  // Which stage-2 engine evaluates this rule. "rule_engine" = deterministic
-  // threshold check. "ai_recommendation" = scored by the AI recommender and
-  // always routed to a manager for approve/modify/reject.
   engine: "rule_engine" | "ai_recommendation";
 };
 
@@ -376,27 +398,20 @@ export const fraudFlags = [
   },
 ];
 
-// ---------------- REWARD PIPELINE (end-to-end flow) ----------------
-// Mirrors the 5 stages of the Figma flow:
-//   1. Earning & triggers   2. Evaluation & AI   3. Integrity & budget
-//   4. Approval workflow    5. Redemption & fulfilment
-// Each RewardRequest sits at one node of that flow. Advancing it (see
-// src/lib/pipeline.ts) is what moves it to the next node, exactly like the
-// arrows on the board.
 
 export type TriggerSource = "performance" | "challenge" | "peer";
 
 export type PipelineStage =
-  | "monitoring" // 1 · tracked, hasn't cleared the rule engine yet
-  | "rule_check" // 2 · Reward rule engine → "Threshold met?"
-  | "manager_review" // 2 · AI recommendation → "Manager decision"
-  | "pending_review" // 3 · flagged by "Suspicious activity?" → PENDING_REVIEW
-  | "budget_check" // 3 · cleared integrity, awaiting "Budget available?"
-  | "approval" // 4 · tiered approval by reward amount
-  | "redemption" // 5 · issued & reserved, awaiting "Employee redeems?"
-  | "redeemed" // 5 · terminal — vendor voucher generated
-  | "expired" // 5 · terminal — funds returned to budget
-  | "rejected"; // terminal — "Rejected & notified"
+  | "monitoring"
+  | "rule_check"
+  | "manager_review"
+  | "pending_review"
+  | "budget_check"
+  | "approval"
+  | "redemption"
+  | "redeemed"
+  | "expired"
+  | "rejected";
 
 export type ApprovalTier = "auto-approve" | "team-lead" | "team-lead-hr-finance";
 
@@ -424,8 +439,6 @@ export type RewardRequest = {
   amount: number;
   ruleName: string;
   stage: PipelineStage;
-  // Precomputed outcomes the pipeline reveals as a request is advanced,
-  // so the demo is deterministic rather than randomized on every click.
   thresholdMet?: boolean;
   aiConfidence?: number;
   suspicious?: boolean;

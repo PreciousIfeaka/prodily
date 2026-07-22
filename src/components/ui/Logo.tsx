@@ -8,8 +8,8 @@ import { cn } from "./cn";
  * `size` is the rendered height in px; width is derived from each asset's
  * intrinsic (trimmed) aspect ratio so there is no layout shift.
  */
-const LOCKUP_RATIO = 426 / 120; // width / height of public/prodily-logo.png
-const MARK_RATIO = 93 / 120; // width / height of public/prodily-mark.png
+const LOCKUP_RATIO = 426 / 120;
+const MARK_RATIO = 93 / 120;
 
 export default function Logo({
   size = 40,

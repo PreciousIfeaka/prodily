@@ -26,6 +26,8 @@ import {
   Ticket,
   Clock,
   Ban,
+  Phone,
+  Wifi,
   LucideIcon,
 } from "lucide-react";
 
@@ -57,6 +59,8 @@ const map: Record<string, LucideIcon> = {
   ticket: Ticket,
   clock: Clock,
   ban: Ban,
+  phone: Phone,
+  wifi: Wifi,
 };
 
 export default function Icon({

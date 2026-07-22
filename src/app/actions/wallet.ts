@@ -212,14 +212,12 @@ export async function fundOrgWalletAction(prevState: any, formData: FormData) {
     return { success: false, error: "Please enter a valid positive amount." };
   }
 
-  // Generate a random reference for the Monnify transaction reference
   const reference = `REF_WEBHOOK_DEP_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
 
   try {
     let response: Response;
 
     if (accountNumber) {
-      // Simulate Monnify SUCCESSFUL_TRANSACTION Webhook
       response = await fetch(`${BACKEND_URL}/monnify/webhook`, {
         method: "POST",
         headers: {
@@ -238,7 +236,6 @@ export async function fundOrgWalletAction(prevState: any, formData: FormData) {
         }),
       });
     } else {
-      // Fallback to direct wallet funding endpoint
       response = await fetch(`${BACKEND_URL}/wallet/fund`, {
         method: "POST",
         headers: {

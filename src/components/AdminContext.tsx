@@ -39,8 +39,6 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     setFraudStatuses((prev) => ({ ...prev, [id]: status }));
   };
 
-  // Badge/stat counts derive from live state, so they stay correct the
-  // moment an admin takes action instead of being hardcoded.
   const pendingApprovalsCount = useMemo(
     () => approvalRows.filter((r) => OPEN_APPROVAL_STATUSES.has(r.status)).length,
     [approvalRows]
@@ -51,8 +49,6 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     [fraudStatuses]
   );
 
-  // Cleared/blocked flags no longer have funds "held" for review, so the
-  // total only sums whatever's still unresolved.
   const pendingFraudAmount = useMemo(
     () => fraudFlags.filter((f) => !fraudStatuses[f.id]).reduce((sum, f) => sum + f.amount, 0),
     [fraudStatuses]

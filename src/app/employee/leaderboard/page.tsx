@@ -36,7 +36,7 @@ export default function LeaderboardPage() {
   }, []);
 
   const podiumHeights = ["h-[120px]", "h-[92px]", "h-[72px]"];
-  const podiumOrder = [1, 0, 2]; // visual left→right: 2nd, 1st, 3rd
+  const podiumOrder = [1, 0, 2];
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">

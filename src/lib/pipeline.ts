@@ -1,15 +1,10 @@
 import { RewardRequest, approvalTierFor } from "@/lib/data";
 
-// Each function below is one decision point (diamond) or automatic hop
-// (plain box) from the Figma board. They all take the current request and
-// return the next one — nothing here mutates in place, so the UI just
-// swaps the item in state after calling one of these.
 
 function stamp(item: RewardRequest, label: string): RewardRequest["history"] {
   return [...item.history, { label, at: "Just now" }];
 }
 
-// Stage 2 · "Reward rule engine" → "Threshold met?"
 export function runRuleCheck(item: RewardRequest): RewardRequest {
   if (item.thresholdMet) {
     const suspicious = !!item.suspicious;
@@ -31,8 +26,6 @@ export function runRuleCheck(item: RewardRequest): RewardRequest {
   };
 }
 
-// Loop-back action for items sitting in "monitoring": more activity comes
-// in and the rule engine gets another chance to fire.
 export function logMoreActivity(item: RewardRequest): RewardRequest {
   return {
     ...item,
@@ -42,7 +35,6 @@ export function logMoreActivity(item: RewardRequest): RewardRequest {
   };
 }
 
-// Stage 2 · "AI recommendation" → "Manager decision"
 export function resolveManagerDecision(
   item: RewardRequest,
   decision: "approve" | "modify" | "reject",
@@ -71,7 +63,6 @@ export function resolveManagerDecision(
   };
 }
 
-// Stage 3 · "Suspicious activity?" → PENDING_REVIEW resolution
 export function resolvePendingReview(item: RewardRequest, cleared: boolean): RewardRequest {
   if (cleared) {
     return {
@@ -88,7 +79,6 @@ export function resolvePendingReview(item: RewardRequest, cleared: boolean): Rew
   };
 }
 
-// Stage 3 · "Budget available?"
 export function resolveBudgetCheck(item: RewardRequest, available: boolean): RewardRequest {
   if (available) {
     return {
@@ -106,7 +96,6 @@ export function resolveBudgetCheck(item: RewardRequest, available: boolean): Rew
   };
 }
 
-// Stage 4 · tiered approval (Team Lead / Team Lead→HR→Finance / auto-approve)
 export function resolveApproval(item: RewardRequest, approved: boolean): RewardRequest {
   if (approved) {
     return {
@@ -123,7 +112,6 @@ export function resolveApproval(item: RewardRequest, approved: boolean): RewardR
   };
 }
 
-// Stage 5 · "Employee redeems?"
 export function resolveRedemption(item: RewardRequest, redeemed: boolean): RewardRequest {
   if (redeemed) {
     const voucherCode = `VC-${Math.floor(10000 + Math.random() * 89999)}`;

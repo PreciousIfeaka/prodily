@@ -12,7 +12,6 @@ import {
 import { useToast } from "@/components/Toast";
 import { PageHeader, Card, Badge, Spinner, Button } from "@/components/ui";
 
-// Frontend columns/bands mapping
 const bands = [
   { key: "b1", title: "1 · Earning & triggers", stages: ["monitoring"], tag: "bg-[#2563eb]", band: "bg-[var(--surface-2)] border-[var(--line)]" },
   { key: "b2", title: "2 · Evaluation & AI", stages: ["rule_check", "manager_review"], tag: "bg-[#7c3aed]", band: "bg-[var(--surface-2)] border-[var(--line)]" },
@@ -98,14 +97,12 @@ export default function PipelinePage() {
     });
   };
 
-  // Maps backend requests dynamically into the UI stages
   const mappedRequests = requests.map((r) => {
     let stage = "monitoring";
     
     if (r.metadata?.isFraudFlagged === true) {
       stage = "pending_review";
     } else if (r.status === "PENDING") {
-      // Map pending requests based on category
       stage = r.category === "EMERGENCY_SUPPORT" ? "manager_review" : "approval";
     } else if (r.status === "APPROVED") {
       stage = "redeemed";
@@ -113,7 +110,6 @@ export default function PipelinePage() {
       stage = "rejected";
     }
 
-    // Match with corresponding fraud alert ID if flagged
     const matchedAlert = fraudAlerts.find((alert) => alert.rewardRequestId === r.id);
 
     return {

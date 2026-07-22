@@ -112,31 +112,39 @@ export default function SignInPage() {
             )}
           </Field>
 
-          <Field label="Password">
-            {({ id }) => (
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--faint)] pointer-events-none" />
-                <Input
-                  id={id}
-                  name="password"
-                  type={showPw ? "text" : "password"}
-                  required
-                  className="pl-11 pr-11"
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((v) => !v)}
-                  aria-label={showPw ? "Hide password" : "Show password"}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--faint)] hover:text-[var(--text)] transition-colors"
-                >
-                  {showPw ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
-                </button>
-              </div>
-            )}
-          </Field>
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              <label className="block t-small font-medium text-[var(--text)]">Password</label>
+              <Link href="/forgot-password" className="t-caption text-[var(--brand-bright)] hover:underline transition-all">
+                Forgot password?
+              </Link>
+            </div>
+            <Field>
+              {({ id }) => (
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--faint)] pointer-events-none" />
+                  <Input
+                    id={id}
+                    name="password"
+                    type={showPw ? "text" : "password"}
+                    required
+                    className="pl-11 pr-11"
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((v) => !v)}
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--faint)] hover:text-[var(--text)] transition-colors"
+                  >
+                    {showPw ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
+                  </button>
+                </div>
+              )}
+            </Field>
+          </div>
 
           <Button type="submit" loading={loading} fullWidth size="lg" icon={<LogIn className="w-[18px] h-[18px]" />}>
             Sign In

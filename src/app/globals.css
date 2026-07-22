@@ -164,8 +164,11 @@ html.light .aurora {
 }
 
 html {
-  scroll-behavior: smooth;
   color-scheme: dark;
+}
+
+html[data-scroll-behavior="smooth"] {
+  scroll-behavior: smooth;
 }
 
 body {
