@@ -1068,8 +1068,10 @@ function FinalCTA() {
           style={{
             background:
               "radial-gradient(600px 300px at var(--x) var(--y), rgba(85,211,150,0.35), transparent 60%), linear-gradient(135deg, var(--brand-600), #06180f)",
-            "--x": gx,
-            "--y": gy,
+            ...({
+              "--x": gx,
+              "--y": gy,
+            } as any),
           }}
         >
           {[
